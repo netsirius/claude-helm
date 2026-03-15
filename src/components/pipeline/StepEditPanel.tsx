@@ -55,9 +55,9 @@ export default function StepEditPanel({
   const agent = agents.find((a) => a.id === agentId);
 
   return (
-    <div className="w-80 border-l border-zinc-800 bg-zinc-900 p-4 flex flex-col gap-4 overflow-y-auto">
+    <div className="w-80 border-l border-[#2a2a28] bg-[#1e1e1c] p-4 flex flex-col gap-4 overflow-y-auto">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white">Edit Step</h3>
+        <h3 className="text-sm font-semibold text-[#faf9f5]">Edit Step</h3>
         {agent && (
           <div
             className="w-3 h-3 rounded-full"
@@ -68,12 +68,12 @@ export default function StepEditPanel({
 
       {/* Agent selector */}
       <div className="space-y-1.5">
-        <label className="text-xs text-zinc-400">Agent</label>
+        <label className="text-xs text-[#b0aea5]">Agent</label>
         <select
           value={agentId}
           onChange={(e) => setAgentId(e.target.value)}
           disabled={readOnly}
-          className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm focus:outline-none focus:border-indigo-500 disabled:opacity-50"
+          className="w-full px-3 py-2 rounded-lg bg-[#1e1e1c] border border-[#2a2a28] text-[#faf9f5] text-sm focus:outline-none focus:border-[#d97757] disabled:opacity-50"
         >
           <option value="">Select agent...</option>
           {agents.map((a) => (
@@ -86,27 +86,27 @@ export default function StepEditPanel({
 
       {/* Prompt */}
       <div className="space-y-1.5">
-        <label className="text-xs text-zinc-400">Prompt</label>
+        <label className="text-xs text-[#b0aea5]">Prompt</label>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           disabled={readOnly}
           rows={5}
-          className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500 resize-none disabled:opacity-50"
+          className="w-full px-3 py-2 rounded-lg bg-[#1e1e1c] border border-[#2a2a28] text-[#faf9f5] text-sm placeholder:text-[#b0aea5]/60 focus:outline-none focus:border-[#d97757] resize-none disabled:opacity-50"
           placeholder="Enter the prompt for this step..."
         />
         {otherSteps.length > 0 && (
-          <div className="text-[10px] text-zinc-500 bg-zinc-800/50 rounded p-2 space-y-0.5">
-            <p className="font-medium text-zinc-400">Available variables:</p>
+          <div className="text-[10px] text-[#b0aea5]/60 bg-[#2a2a28]/50 rounded p-2 space-y-0.5">
+            <p className="font-medium text-[#b0aea5]">Available variables:</p>
             <p>
-              <code className="text-indigo-400">{"{{prev.output}}"}</code> —
+              <code className="text-[#d97757]">{"{{prev.output}}"}</code> —
               output from last dependency
             </p>
             {otherSteps.map((s) => {
               const depAgent = agents.find((a) => a.id === s.agentId);
               return (
                 <p key={s.id}>
-                  <code className="text-indigo-400">{`{{step.${s.id}.output}}`}</code>{" "}
+                  <code className="text-[#d97757]">{`{{step.${s.id}.output}}`}</code>{" "}
                   — {depAgent?.name || s.agentId}
                 </p>
               );
@@ -117,37 +117,37 @@ export default function StepEditPanel({
 
       {/* Timeout */}
       <div className="space-y-1.5">
-        <label className="text-xs text-zinc-400">Timeout (seconds)</label>
+        <label className="text-xs text-[#b0aea5]">Timeout (seconds)</label>
         <input
           type="number"
           value={timeout}
           onChange={(e) => setTimeout_(Number(e.target.value))}
           disabled={readOnly}
           min={0}
-          className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm focus:outline-none focus:border-indigo-500 disabled:opacity-50"
+          className="w-full px-3 py-2 rounded-lg bg-[#1e1e1c] border border-[#2a2a28] text-[#faf9f5] text-sm focus:outline-none focus:border-[#d97757] disabled:opacity-50"
         />
       </div>
 
       {/* Dependencies */}
       {otherSteps.length > 0 && (
         <div className="space-y-1.5">
-          <label className="text-xs text-zinc-400">Depends On</label>
+          <label className="text-xs text-[#b0aea5]">Depends On</label>
           <div className="space-y-1">
             {otherSteps.map((s) => {
               const depAgent = agents.find((a) => a.id === s.agentId);
               return (
                 <label
                   key={s.id}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-zinc-800 cursor-pointer"
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[#2a2a28] cursor-pointer"
                 >
                   <input
                     type="checkbox"
                     checked={dependsOn.includes(s.id)}
                     onChange={() => toggleDep(s.id)}
                     disabled={readOnly}
-                    className="rounded border-zinc-600 bg-zinc-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0"
+                    className="rounded border-[#3a3a37] bg-[#2a2a28] text-[#d97757] focus:ring-[#d97757] focus:ring-offset-0"
                   />
-                  <span className="text-xs text-zinc-300">
+                  <span className="text-xs text-[#e8e6dc]">
                     {depAgent?.name || s.agentId}
                   </span>
                 </label>
@@ -159,18 +159,18 @@ export default function StepEditPanel({
 
       {/* Actions */}
       {!readOnly && (
-        <div className="mt-auto flex gap-2 pt-4 border-t border-zinc-800">
+        <div className="mt-auto flex gap-2 pt-4 border-t border-[#2a2a28]">
           <button
             onClick={handleSave}
             disabled={!hasChanges}
-            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save size={14} />
             Save
           </button>
           <button
             onClick={() => onDelete(step.id)}
-            className="flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg text-red-400 hover:bg-red-400/10 transition-colors"
+            className="flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg text-[#c45c4a] hover:bg-[#c45c4a]/10 transition-colors"
           >
             <Trash2 size={14} />
           </button>

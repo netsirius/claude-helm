@@ -106,7 +106,7 @@ export default function PipelineDAGEditor({
         source: depId,
         target: step.id,
         animated: step.status === "running",
-        style: { stroke: "#52525b", strokeWidth: 2 },
+        style: { stroke: "#3a3a37", strokeWidth: 2 },
       })),
     );
 
@@ -144,12 +144,12 @@ export default function PipelineDAGEditor({
         nodeTypes={nodeTypes}
         fitView
         fitViewOptions={{ padding: 0.3 }}
-        className="bg-zinc-950"
+        className="bg-[#141413]"
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#27272a" gap={20} />
+        <Background color="#2a2a28" gap={20} />
         <Controls
-          className="!bg-zinc-800 !border-zinc-700 !rounded-lg [&>button]:!bg-zinc-800 [&>button]:!border-zinc-700 [&>button]:!text-zinc-400 [&>button:hover]:!bg-zinc-700"
+          className="!bg-[#2a2a28] !border-[#3a3a37] !rounded-lg [&>button]:!bg-[#2a2a28] [&>button]:!border-[#3a3a37] [&>button]:!text-[#b0aea5] [&>button:hover]:!bg-[#3a3a37]"
         />
       </ReactFlow>
     </div>

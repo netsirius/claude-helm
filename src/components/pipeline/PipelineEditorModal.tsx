@@ -51,16 +51,16 @@ export default function PipelineEditorModal({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-5xl mx-4 flex flex-col max-h-[85vh] overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#141413]/80 backdrop-blur-sm">
+      <div className="bg-[#1e1e1c] border border-[#2a2a28] rounded-2xl w-full max-w-5xl mx-4 flex flex-col max-h-[85vh] overflow-hidden shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#2a2a28]">
           <div>
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-[#faf9f5]">
               {pipeline.name}
             </h2>
             {pipeline.description && (
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs text-[#b0aea5] mt-0.5">
                 {pipeline.description}
               </p>
             )}
@@ -70,7 +70,7 @@ export default function PipelineEditorModal({
               <button
                 onClick={handleAddStep}
                 disabled={agents.length === 0}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus size={14} />
                 Add Step
@@ -78,7 +78,7 @@ export default function PipelineEditorModal({
             )}
             <button
               onClick={onClose}
-              className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              className="p-2 rounded-lg text-[#b0aea5] hover:text-[#faf9f5] hover:bg-[#2a2a28] transition-colors"
             >
               <X size={18} />
             </button>
@@ -89,14 +89,14 @@ export default function PipelineEditorModal({
         <div className="flex flex-1 min-h-0">
           {pipeline.steps.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-10">
-              <p className="text-zinc-400 text-sm mb-3">
+              <p className="text-[#b0aea5] text-sm mb-3">
                 No steps in this pipeline yet.
               </p>
               {!isRunning && (
                 <button
                   onClick={handleAddStep}
                   disabled={agents.length === 0}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50"
                 >
                   <Plus size={16} />
                   Add First Step

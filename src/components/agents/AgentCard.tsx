@@ -19,18 +19,18 @@ const statusConfig: Record<
 > = {
   running: {
     label: "Running",
-    dotClass: "bg-emerald-400",
-    badgeClass: "bg-emerald-400/10 text-emerald-400",
+    dotClass: "bg-[#788c5d]",
+    badgeClass: "bg-[#788c5d]/10 text-[#788c5d]",
   },
   exited: {
     label: "Exited",
-    dotClass: "bg-amber-400",
-    badgeClass: "bg-amber-400/10 text-amber-400",
+    dotClass: "bg-[#d97757]",
+    badgeClass: "bg-[#d97757]/10 text-[#d97757]",
   },
   idle: {
     label: "Idle",
-    dotClass: "bg-zinc-500",
-    badgeClass: "bg-zinc-500/10 text-zinc-400",
+    dotClass: "bg-[#b0aea5]",
+    badgeClass: "bg-[#b0aea5]/10 text-[#b0aea5]",
   },
 };
 
@@ -68,22 +68,22 @@ export default function AgentCard({
 
   const isRunning = status === "running";
   const isIdle = status === "idle";
-  const borderColor = agent.color || "#6366f1";
+  const borderColor = agent.color || "#d97757";
 
   return (
     <div
-      className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col gap-3"
+      className="bg-[#1e1e1c] border border-[#2a2a28] rounded-xl p-4 flex flex-col gap-3 hover:border-[#3a3a37] transition-colors"
       style={{ borderLeftColor: borderColor, borderLeftWidth: 3 }}
     >
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-zinc-800 rounded-lg text-lg leading-none">
+          <div className="p-2 bg-[#2a2a28] rounded-lg text-lg leading-none">
             {agent.icon || "\u{1F916}"}
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white">{agent.name}</h3>
-            <p className="text-xs text-zinc-400">{agent.role}</p>
+            <h3 className="text-sm font-semibold text-[#faf9f5]">{agent.name}</h3>
+            <p className="text-xs text-[#b0aea5]">{agent.role}</p>
           </div>
         </div>
 
@@ -96,28 +96,28 @@ export default function AgentCard({
       </div>
 
       {/* Meta */}
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#b0aea5]/60">
         <span>
           Model:{" "}
-          <span className="text-zinc-300">
+          <span className="text-[#e8e6dc]">
             {agent.defaultModel.split("-").slice(0, 2).join("-")}
           </span>
         </span>
         {remote && (
           <span>
-            Remote: <span className="text-zinc-300">{remote.name}</span>
+            Remote: <span className="text-[#e8e6dc]">{remote.name}</span>
           </span>
         )}
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 mt-auto pt-2 border-t border-zinc-800">
+      <div className="flex items-center gap-2 mt-auto pt-2 border-t border-[#2a2a28]">
         {isIdle && (
           <>
             <button
               onClick={() => handleAction("start", () => onStart(agent))}
               disabled={actionLoading !== null}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50"
             >
               {actionLoading === "start" ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -130,7 +130,7 @@ export default function AgentCard({
               <button
                 onClick={() => onStartWithBrowse(agent)}
                 disabled={actionLoading !== null}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#e8e6dc] transition-colors disabled:opacity-50"
                 title="Choose working directory before starting"
               >
                 <FolderOpen size={14} />
@@ -144,7 +144,7 @@ export default function AgentCard({
             <button
               onClick={() => handleAction("stop", () => onStop(agent))}
               disabled={actionLoading !== null}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-600/80 hover:bg-red-500 text-white transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#c45c4a]/20 hover:bg-[#c45c4a]/40 text-[#c45c4a] transition-colors disabled:opacity-50"
             >
               {actionLoading === "stop" ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -157,7 +157,7 @@ export default function AgentCard({
             {remote && (
               <button
                 onClick={() => onOpen(agent, remote)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#e8e6dc] transition-colors"
               >
                 <Copy size={14} />
                 Open
@@ -169,7 +169,7 @@ export default function AgentCard({
         <button
           onClick={() => handleAction("delete", () => onDelete(agent))}
           disabled={actionLoading !== null}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800 hover:bg-red-600/20 hover:text-red-400 text-zinc-400 transition-colors disabled:opacity-50 ml-auto"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#c45c4a]/20 hover:text-[#c45c4a] text-[#b0aea5] transition-colors disabled:opacity-50 ml-auto"
         >
           {actionLoading === "delete" ? (
             <Loader2 size={14} className="animate-spin" />

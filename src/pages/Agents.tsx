@@ -113,19 +113,19 @@ export default function Agents() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Agents</h1>
+        <h1 className="text-2xl font-bold text-[#faf9f5]">Agents</h1>
         <div className="flex items-center gap-3">
           <button
             onClick={fetchAgents}
             disabled={loading}
-            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            className="p-2 rounded-lg bg-[#1e1e1c] border border-[#2a2a28] text-[#b0aea5] hover:text-[#faf9f5] hover:bg-[#2a2a28] transition-colors"
             title="Refresh"
           >
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </button>
           <button
             onClick={() => setDialogOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors"
           >
             <Plus size={16} />
             New Agent
@@ -135,18 +135,18 @@ export default function Agents() {
 
       {isEmpty ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="p-4 bg-zinc-900 rounded-2xl mb-4">
-            <Bot size={32} className="text-zinc-500" />
+          <div className="p-4 bg-[#1e1e1c] rounded-2xl mb-4">
+            <Bot size={32} className="text-[#b0aea5]" />
           </div>
-          <h2 className="text-lg font-semibold text-white mb-1">
+          <h2 className="text-lg font-semibold text-[#faf9f5] mb-1">
             Create your first agent
           </h2>
-          <p className="text-sm text-zinc-400 mb-4">
+          <p className="text-sm text-[#b0aea5] mb-4">
             Agents represent Claude instances running on your remotes.
           </p>
           <button
             onClick={() => setDialogOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors"
           >
             <Plus size={16} />
             New Agent

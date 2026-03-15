@@ -12,10 +12,10 @@ export type StepNodeData = {
 type StepNodeType = Node<StepNodeData, "stepNode">;
 
 const statusStyles: Record<string, string> = {
-  pending: "bg-zinc-700/50 text-zinc-400",
-  running: "bg-amber-400/10 text-amber-400",
-  completed: "bg-emerald-400/10 text-emerald-400",
-  failed: "bg-red-400/10 text-red-400",
+  pending: "bg-[#3a3a37]/50 text-[#b0aea5]",
+  running: "bg-[#d97757]/10 text-[#d97757]",
+  completed: "bg-[#788c5d]/10 text-[#788c5d]",
+  failed: "bg-[#c45c4a]/10 text-[#c45c4a]",
 };
 
 function StepNodeComponent({ data }: NodeProps<StepNodeType>) {
@@ -26,15 +26,15 @@ function StepNodeComponent({ data }: NodeProps<StepNodeType>) {
 
   return (
     <div
-      className={`rounded-xl bg-zinc-900 border-2 px-4 py-3 min-w-[200px] max-w-[240px] transition-shadow ${
-        selected ? "shadow-lg shadow-indigo-500/20 ring-1 ring-indigo-500" : ""
+      className={`rounded-xl bg-[#1e1e1c] border-2 px-4 py-3 min-w-[200px] max-w-[240px] transition-shadow ${
+        selected ? "shadow-lg shadow-[#d97757]/20 ring-1 ring-[#d97757]" : ""
       }`}
       style={{ borderColor }}
     >
       <Handle
         type="target"
         position={Position.Left}
-        className="!w-2.5 !h-2.5 !bg-zinc-600 !border-zinc-500"
+        className="!w-2.5 !h-2.5 !bg-[#3a3a37] !border-[#b0aea5]"
       />
 
       <div className="flex items-center gap-2 mb-2">
@@ -49,7 +49,7 @@ function StepNodeComponent({ data }: NodeProps<StepNodeType>) {
             {agent.icon || agent.name.charAt(0)}
           </div>
         )}
-        <span className="text-sm font-medium text-white truncate">
+        <span className="text-sm font-medium text-[#faf9f5] truncate">
           {agent?.name || step.agentId}
         </span>
         <span
@@ -60,13 +60,13 @@ function StepNodeComponent({ data }: NodeProps<StepNodeType>) {
       </div>
 
       {step.prompt && (
-        <p className="text-xs text-zinc-400 leading-relaxed">{promptPreview}</p>
+        <p className="text-xs text-[#b0aea5] leading-relaxed">{promptPreview}</p>
       )}
 
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-2.5 !h-2.5 !bg-zinc-600 !border-zinc-500"
+        className="!w-2.5 !h-2.5 !bg-[#3a3a37] !border-[#b0aea5]"
       />
     </div>
   );

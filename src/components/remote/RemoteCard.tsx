@@ -31,9 +31,9 @@ interface RemoteCardProps {
 }
 
 const statusColor: Record<string, string> = {
-  online: "bg-emerald-400",
-  offline: "bg-red-400",
-  unknown: "bg-zinc-500",
+  online: "bg-[#788c5d]",
+  offline: "bg-[#c45c4a]",
+  unknown: "bg-[#b0aea5]",
 };
 
 const statusLabel: Record<string, string> = {
@@ -113,17 +113,17 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
 
   return (
     <>
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col gap-3">
+      <div className="bg-[#1e1e1c] border border-[#2a2a28] rounded-xl p-4 flex flex-col gap-3 hover:border-[#3a3a37] transition-colors">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-zinc-800 rounded-lg">
-              <ServerIcon size={20} className="text-zinc-400" />
+            <div className="p-2 bg-[#2a2a28] rounded-lg">
+              <ServerIcon size={20} className="text-[#b0aea5]" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-white">
+              <h3 className="text-sm font-semibold text-[#faf9f5]">
                 {remote.name}
               </h3>
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-[#b0aea5]">
                 {remote.user}@{remote.host}:{remote.port}
               </p>
             </div>
@@ -133,15 +133,15 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
             <span
               className={`inline-block w-2 h-2 rounded-full ${statusColor[remote.status]}`}
             />
-            <span className="text-xs text-zinc-400">
+            <span className="text-xs text-[#b0aea5]">
               {statusLabel[remote.status]}
             </span>
           </div>
         </div>
 
         {remote.group && (
-          <p className="text-xs text-zinc-500">
-            Group: <span className="text-zinc-400">{remote.group}</span>
+          <p className="text-xs text-[#b0aea5]/60">
+            Group: <span className="text-[#b0aea5]">{remote.group}</span>
           </p>
         )}
 
@@ -150,7 +150,7 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
             {remote.tags.map((tag) => (
               <span
                 key={tag}
-                className="px-2 py-0.5 text-xs rounded-full bg-zinc-800 text-zinc-300"
+                className="px-2 py-0.5 text-xs rounded-full bg-[#2a2a28] text-[#b0aea5]"
               >
                 {tag}
               </span>
@@ -160,13 +160,13 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
 
         {/* Claude status badge */}
         {claudeNotInstalled && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
-            <AlertCircle size={14} className="text-amber-400" />
-            <span className="text-xs text-amber-400">Claude not installed</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#d97757]/10 border border-[#d97757]/20">
+            <AlertCircle size={14} className="text-[#d97757]" />
+            <span className="text-xs text-[#d97757]">Claude not installed</span>
             <button
               onClick={handleInstall}
               disabled={installing}
-              className="ml-auto flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-amber-600 hover:bg-amber-500 text-white transition-colors disabled:opacity-50"
+              className="ml-auto flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50"
             >
               {installing ? (
                 <Loader2 size={12} className="animate-spin" />
@@ -179,19 +179,19 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
         )}
 
         {probed && probeResult?.claudePath && (
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-[#b0aea5]/60">
             Claude:{" "}
-            <span className="text-zinc-400">
+            <span className="text-[#b0aea5]">
               {probeResult.claudeVersion || "installed"}
             </span>
           </p>
         )}
 
-        <div className="flex items-center gap-2 mt-auto pt-2 border-t border-zinc-800">
+        <div className="flex items-center gap-2 mt-auto pt-2 border-t border-[#2a2a28]">
           <button
             onClick={handleTest}
             disabled={testing}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50"
           >
             {testing ? (
               <Loader2 size={14} className="animate-spin" />
@@ -202,21 +202,21 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
           </button>
           <button
             onClick={() => onEdit?.(remote)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#b0aea5] hover:text-[#faf9f5] transition-colors"
           >
             <Pencil size={14} />
             Edit
           </button>
           <button
             onClick={() => setSettingsOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#b0aea5] hover:text-[#faf9f5] transition-colors"
           >
             <Settings size={14} />
             Claude Settings
           </button>
           <button
             onClick={handleDelete}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800 hover:bg-red-600/20 hover:text-red-400 text-zinc-400 transition-colors ml-auto"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#c45c4a]/20 hover:text-[#c45c4a] text-[#b0aea5] transition-colors ml-auto"
           >
             <Trash2 size={14} />
             Delete

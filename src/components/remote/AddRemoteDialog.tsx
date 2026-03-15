@@ -55,20 +55,20 @@ export default function AddRemoteDialog({ open, onClose }: AddRemoteDialogProps)
   };
 
   const inputClass =
-    "w-full px-3 py-2 text-sm bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent";
+    "w-full px-3 py-2 text-sm bg-[#1e1e1c] border border-[#2a2a28] rounded-lg text-[#faf9f5] placeholder:text-[#b0aea5]/60 focus:outline-none focus:ring-2 focus:ring-[#d97757] focus:border-transparent";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
-        className="absolute inset-0 bg-black/60"
+        className="absolute inset-0 bg-[#141413]/80"
         onClick={resetAndClose}
       />
-      <div className="relative bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md p-6 shadow-2xl">
+      <div className="relative bg-[#1e1e1c] border border-[#2a2a28] rounded-xl w-full max-w-md p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-white">Add Remote</h2>
+          <h2 className="text-lg font-semibold text-[#faf9f5]">Add Remote</h2>
           <button
             onClick={resetAndClose}
-            className="text-zinc-400 hover:text-white transition-colors"
+            className="text-[#b0aea5] hover:text-[#faf9f5] transition-colors"
           >
             <X size={18} />
           </button>
@@ -76,7 +76,7 @@ export default function AddRemoteDialog({ open, onClose }: AddRemoteDialogProps)
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">
+            <label className="block text-xs font-medium text-[#b0aea5] mb-1">
               Name
             </label>
             <input
@@ -89,7 +89,7 @@ export default function AddRemoteDialog({ open, onClose }: AddRemoteDialogProps)
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">
+            <label className="block text-xs font-medium text-[#b0aea5] mb-1">
               Host
             </label>
             <input
@@ -103,7 +103,7 @@ export default function AddRemoteDialog({ open, onClose }: AddRemoteDialogProps)
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">
+              <label className="block text-xs font-medium text-[#b0aea5] mb-1">
                 User
               </label>
               <input
@@ -113,7 +113,7 @@ export default function AddRemoteDialog({ open, onClose }: AddRemoteDialogProps)
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">
+              <label className="block text-xs font-medium text-[#b0aea5] mb-1">
                 Port
               </label>
               <input
@@ -128,7 +128,7 @@ export default function AddRemoteDialog({ open, onClose }: AddRemoteDialogProps)
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">
+            <label className="block text-xs font-medium text-[#b0aea5] mb-1">
               SSH Key Path
             </label>
             <input
@@ -139,7 +139,7 @@ export default function AddRemoteDialog({ open, onClose }: AddRemoteDialogProps)
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">
+            <label className="block text-xs font-medium text-[#b0aea5] mb-1">
               Tags (comma-separated)
             </label>
             <input
@@ -151,7 +151,7 @@ export default function AddRemoteDialog({ open, onClose }: AddRemoteDialogProps)
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">
+            <label className="block text-xs font-medium text-[#b0aea5] mb-1">
               Group
             </label>
             <input
@@ -166,14 +166,14 @@ export default function AddRemoteDialog({ open, onClose }: AddRemoteDialogProps)
             <button
               type="button"
               onClick={resetAndClose}
-              className="px-4 py-2 text-sm font-medium rounded-lg text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 transition-colors"
+              className="px-4 py-2 text-sm font-medium rounded-lg text-[#b0aea5] hover:text-[#faf9f5] bg-[#2a2a28] hover:bg-[#3a3a37] transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting || !name.trim() || !host.trim()}
-              className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50"
             >
               {submitting ? "Adding..." : "Add Remote"}
             </button>

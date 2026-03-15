@@ -81,20 +81,20 @@ export default function CreateAgentDialog({
   };
 
   const inputClass =
-    "w-full px-3 py-2 text-sm bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent";
+    "w-full px-3 py-2 text-sm bg-[#1e1e1c] border border-[#2a2a28] rounded-lg text-[#faf9f5] placeholder:text-[#b0aea5]/60 focus:outline-none focus:ring-2 focus:ring-[#d97757] focus:border-transparent";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
-        className="absolute inset-0 bg-black/60"
+        className="absolute inset-0 bg-[#141413]/80"
         onClick={resetAndClose}
       />
-      <div className="relative bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md p-6 shadow-2xl">
+      <div className="relative bg-[#1e1e1c] border border-[#2a2a28] rounded-xl w-full max-w-md p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-white">New Agent</h2>
+          <h2 className="text-lg font-semibold text-[#faf9f5]">New Agent</h2>
           <button
             onClick={resetAndClose}
-            className="text-zinc-400 hover:text-white transition-colors"
+            className="text-[#b0aea5] hover:text-[#faf9f5] transition-colors"
           >
             <X size={18} />
           </button>
@@ -102,7 +102,7 @@ export default function CreateAgentDialog({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">
+            <label className="block text-xs font-medium text-[#b0aea5] mb-1">
               Name
             </label>
             <input
@@ -115,7 +115,7 @@ export default function CreateAgentDialog({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">
+            <label className="block text-xs font-medium text-[#b0aea5] mb-1">
               Role
             </label>
             <input
@@ -129,7 +129,7 @@ export default function CreateAgentDialog({
 
           {/* Icon picker */}
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-2">
+            <label className="block text-xs font-medium text-[#b0aea5] mb-2">
               Icon
             </label>
             <div className="flex gap-2 flex-wrap">
@@ -140,8 +140,8 @@ export default function CreateAgentDialog({
                   onClick={() => setIcon(ic)}
                   className={`w-9 h-9 flex items-center justify-center rounded-lg text-lg transition-colors ${
                     icon === ic
-                      ? "bg-indigo-600/30 ring-2 ring-indigo-500"
-                      : "bg-zinc-800 hover:bg-zinc-700"
+                      ? "bg-[#d97757]/30 ring-2 ring-[#d97757]"
+                      : "bg-[#2a2a28] hover:bg-[#3a3a37]"
                   }`}
                 >
                   {ic}
@@ -152,7 +152,7 @@ export default function CreateAgentDialog({
 
           {/* Color picker */}
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-2">
+            <label className="block text-xs font-medium text-[#b0aea5] mb-2">
               Color
             </label>
             <div className="flex gap-2 flex-wrap">
@@ -163,7 +163,7 @@ export default function CreateAgentDialog({
                   onClick={() => setColor(c)}
                   className={`w-7 h-7 rounded-full transition-all ${
                     color === c
-                      ? "ring-2 ring-offset-2 ring-offset-zinc-900 ring-white scale-110"
+                      ? "ring-2 ring-offset-2 ring-offset-[#1e1e1c] ring-[#faf9f5] scale-110"
                       : "hover:scale-110"
                   }`}
                   style={{ backgroundColor: c }}
@@ -174,7 +174,7 @@ export default function CreateAgentDialog({
 
           {/* Model selector */}
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">
+            <label className="block text-xs font-medium text-[#b0aea5] mb-1">
               Model
             </label>
             <select
@@ -192,7 +192,7 @@ export default function CreateAgentDialog({
 
           {/* Remote selector */}
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">
+            <label className="block text-xs font-medium text-[#b0aea5] mb-1">
               Remote
             </label>
             <select
@@ -213,14 +213,14 @@ export default function CreateAgentDialog({
             <button
               type="button"
               onClick={resetAndClose}
-              className="px-4 py-2 text-sm font-medium rounded-lg text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 transition-colors"
+              className="px-4 py-2 text-sm font-medium rounded-lg text-[#b0aea5] hover:text-[#faf9f5] bg-[#2a2a28] hover:bg-[#3a3a37] transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting || !name.trim() || !role.trim()}
-              className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50"
             >
               {submitting ? "Creating..." : "Create Agent"}
             </button>

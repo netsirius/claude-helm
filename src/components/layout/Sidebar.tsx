@@ -23,9 +23,9 @@ const navItems = [
 
 export default function Sidebar() {
   return (
-    <aside className="w-56 shrink-0 bg-zinc-900 border-r border-zinc-800 flex flex-col">
+    <aside className="w-56 shrink-0 bg-[#1a1a19] border-r border-[#2a2a28] flex flex-col">
       <div className="px-4 py-5">
-        <h1 className="text-lg font-bold text-white tracking-tight">
+        <h1 className="text-lg font-bold text-[#faf9f5] tracking-tight">
           Claude Manager
         </h1>
       </div>
@@ -39,8 +39,8 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 isActive
-                  ? "bg-indigo-600/20 text-indigo-400"
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                  ? "bg-[#d97757]/10 text-[#d97757]"
+                  : "text-[#b0aea5] hover:text-[#faf9f5] hover:bg-[#2a2a28]"
               }`
             }
           >

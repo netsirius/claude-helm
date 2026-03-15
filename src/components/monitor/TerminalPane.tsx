@@ -29,10 +29,10 @@ export default function TerminalPane({
       fontSize: 12,
       fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
       theme: {
-        background: "#18181b",
-        foreground: "#a1a1aa",
-        cursor: "#a1a1aa",
-        selectionBackground: "#3f3f46",
+        background: "#141413",
+        foreground: "#b0aea5",
+        cursor: "#b0aea5",
+        selectionBackground: "#2a2a28",
       },
       convertEol: true,
     });
@@ -59,19 +59,19 @@ export default function TerminalPane({
   }, [output]);
 
   return (
-    <div className="flex flex-col bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+    <div className="flex flex-col bg-[#1e1e1c] border border-[#2a2a28] rounded-xl overflow-hidden">
       {/* Header bar */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800 bg-zinc-950">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-[#2a2a28] bg-[#141413]">
         <div className="flex items-center gap-2">
           <span
             className="inline-block w-2 h-2 rounded-full"
             style={{ backgroundColor: agentColor }}
           />
-          <span className="text-sm font-medium text-white">{agentName}</span>
+          <span className="text-sm font-medium text-[#faf9f5]">{agentName}</span>
         </div>
         <button
           onClick={onClose}
-          className="p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+          className="p-1 rounded hover:bg-[#2a2a28] text-[#b0aea5] hover:text-[#faf9f5] transition-colors"
           title="Remove from monitor"
         >
           <X size={14} />

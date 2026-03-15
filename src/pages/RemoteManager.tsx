@@ -49,31 +49,31 @@ export default function RemoteManager() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Remote Manager</h1>
+        <h1 className="text-2xl font-bold text-[#faf9f5]">Remote Manager</h1>
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#b0aea5]/60"
             />
             <input
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder="Filter remotes..."
-              className="pl-9 pr-3 py-2 text-sm bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent w-56"
+              className="pl-9 pr-3 py-2 text-sm bg-[#1e1e1c] border border-[#2a2a28] rounded-lg text-[#faf9f5] placeholder:text-[#b0aea5]/60 focus:outline-none focus:ring-2 focus:ring-[#d97757] focus:border-transparent w-56"
             />
           </div>
           <button
             onClick={fetch}
             disabled={loading}
-            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            className="p-2 rounded-lg bg-[#1e1e1c] border border-[#2a2a28] text-[#b0aea5] hover:text-[#faf9f5] hover:bg-[#2a2a28] transition-colors"
             title="Refresh"
           >
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </button>
           <button
             onClick={() => setDialogOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors"
           >
             <Plus size={16} />
             Add Remote
@@ -83,18 +83,18 @@ export default function RemoteManager() {
 
       {isEmpty ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="p-4 bg-zinc-900 rounded-2xl mb-4">
-            <Server size={32} className="text-zinc-500" />
+          <div className="p-4 bg-[#1e1e1c] rounded-2xl mb-4">
+            <Server size={32} className="text-[#b0aea5]" />
           </div>
-          <h2 className="text-lg font-semibold text-white mb-1">
+          <h2 className="text-lg font-semibold text-[#faf9f5] mb-1">
             Add your first remote
           </h2>
-          <p className="text-sm text-zinc-400 mb-4">
+          <p className="text-sm text-[#b0aea5] mb-4">
             Connect a remote machine to start managing Claude sessions.
           </p>
           <button
             onClick={() => setDialogOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors"
           >
             <Plus size={16} />
             Add Remote
@@ -112,7 +112,7 @@ export default function RemoteManager() {
 
           {Object.entries(grouped.groups).map(([groupName, remoteItems]) => (
             <div key={groupName}>
-              <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">
+              <h2 className="text-sm font-semibold text-[#b0aea5] uppercase tracking-wider mb-3">
                 {groupName}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

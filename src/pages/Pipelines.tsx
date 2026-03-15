@@ -20,10 +20,10 @@ import { tauriInvoke } from "../lib/tauri";
 import PipelineEditorModal from "../components/pipeline/PipelineEditorModal";
 
 const stepStatusIcon: Record<string, ReactNode> = {
-  pending: <Clock size={14} className="text-zinc-500" />,
-  running: <Loader2 size={14} className="text-blue-400 animate-spin" />,
-  completed: <CheckCircle2 size={14} className="text-emerald-400" />,
-  failed: <XCircle size={14} className="text-red-400" />,
+  pending: <Clock size={14} className="text-[#b0aea5]" />,
+  running: <Loader2 size={14} className="text-[#6a9bcc] animate-spin" />,
+  completed: <CheckCircle2 size={14} className="text-[#788c5d]" />,
+  failed: <XCircle size={14} className="text-[#c45c4a]" />,
 };
 
 export default function Pipelines() {
@@ -162,17 +162,17 @@ export default function Pipelines() {
     pipeline.status === "running" || executingIds.has(pipeline.id);
 
   const statusColor: Record<string, string> = {
-    idle: "bg-zinc-700/50 text-zinc-400",
-    running: "bg-blue-400/10 text-blue-400",
-    completed: "bg-emerald-400/10 text-emerald-400",
-    failed: "bg-red-400/10 text-red-400",
+    idle: "bg-[#3a3a37]/50 text-[#b0aea5]",
+    running: "bg-[#6a9bcc]/10 text-[#6a9bcc]",
+    completed: "bg-[#788c5d]/10 text-[#788c5d]",
+    failed: "bg-[#c45c4a]/10 text-[#c45c4a]",
   };
 
   const stepBorderColor: Record<string, string> = {
-    pending: "border-zinc-700",
-    running: "border-blue-500/50",
-    completed: "border-emerald-500/50",
-    failed: "border-red-500/50",
+    pending: "border-[#3a3a37]",
+    running: "border-[#6a9bcc]/50",
+    completed: "border-[#788c5d]/50",
+    failed: "border-[#c45c4a]/50",
   };
 
   const isEmpty = pipelines.length === 0 && !loading;
@@ -180,19 +180,19 @@ export default function Pipelines() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Pipelines</h1>
+        <h1 className="text-2xl font-bold text-[#faf9f5]">Pipelines</h1>
         <div className="flex items-center gap-3">
           <button
             onClick={fetchPipelines}
             disabled={loading}
-            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            className="p-2 rounded-lg bg-[#1e1e1c] border border-[#2a2a28] text-[#b0aea5] hover:text-[#faf9f5] hover:bg-[#2a2a28] transition-colors"
             title="Refresh"
           >
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </button>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors"
           >
             {showForm ? <ChevronUp size={16} /> : <Plus size={16} />}
             New Pipeline
@@ -202,34 +202,34 @@ export default function Pipelines() {
 
       {/* Inline create form */}
       {showForm && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 space-y-4">
+        <div className="rounded-xl border border-[#2a2a28] bg-[#1e1e1c] p-5 space-y-4">
           <div className="space-y-3">
             <input
               type="text"
               placeholder="Pipeline name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500"
+              className="w-full px-3 py-2 rounded-lg bg-[#1e1e1c] border border-[#2a2a28] text-[#faf9f5] text-sm placeholder:text-[#b0aea5]/60 focus:outline-none focus:border-[#d97757]"
             />
             <input
               type="text"
               placeholder="Description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500"
+              className="w-full px-3 py-2 rounded-lg bg-[#1e1e1c] border border-[#2a2a28] text-[#faf9f5] text-sm placeholder:text-[#b0aea5]/60 focus:outline-none focus:border-[#d97757]"
             />
           </div>
           <div className="flex justify-end gap-2">
             <button
               onClick={() => setShowForm(false)}
-              className="px-4 py-2 text-sm rounded-lg text-zinc-400 hover:text-white transition-colors"
+              className="px-4 py-2 text-sm rounded-lg text-[#b0aea5] hover:text-[#faf9f5] transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleCreate}
               disabled={!name.trim()}
-              className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Create
             </button>
@@ -239,18 +239,18 @@ export default function Pipelines() {
 
       {isEmpty ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="p-4 bg-zinc-900 rounded-2xl mb-4">
-            <GitBranch size={32} className="text-zinc-500" />
+          <div className="p-4 bg-[#1e1e1c] rounded-2xl mb-4">
+            <GitBranch size={32} className="text-[#b0aea5]" />
           </div>
-          <h2 className="text-lg font-semibold text-white mb-1">
+          <h2 className="text-lg font-semibold text-[#faf9f5] mb-1">
             No pipelines yet
           </h2>
-          <p className="text-sm text-zinc-400 mb-4">
+          <p className="text-sm text-[#b0aea5] mb-4">
             Create a pipeline to orchestrate multi-agent workflows.
           </p>
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors"
           >
             <Plus size={16} />
             New Pipeline
@@ -261,12 +261,12 @@ export default function Pipelines() {
           {pipelines.map((pipeline: Pipeline) => (
             <div
               key={pipeline.id}
-              className="rounded-xl border border-zinc-800 bg-zinc-900 p-5"
+              className="rounded-xl border border-[#2a2a28] bg-[#1e1e1c] p-5"
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className="flex items-center gap-3 mb-1">
-                    <h3 className="text-base font-semibold text-white">
+                    <h3 className="text-base font-semibold text-[#faf9f5]">
                       {pipeline.name}
                     </h3>
                     <span
@@ -276,7 +276,7 @@ export default function Pipelines() {
                     </span>
                   </div>
                   {pipeline.description && (
-                    <p className="text-sm text-zinc-400">{pipeline.description}</p>
+                    <p className="text-sm text-[#b0aea5]">{pipeline.description}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-1">
@@ -284,7 +284,7 @@ export default function Pipelines() {
                   {isRunning(pipeline) ? (
                     <button
                       onClick={() => handleCancel(pipeline.id)}
-                      className="p-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-zinc-800 transition-colors"
+                      className="p-2 rounded-lg text-[#c45c4a] hover:text-[#c45c4a] hover:bg-[#2a2a28] transition-colors"
                       title="Cancel execution"
                     >
                       <Square size={16} />
@@ -293,7 +293,7 @@ export default function Pipelines() {
                     <button
                       onClick={() => handleExecute(pipeline.id)}
                       disabled={!canRun(pipeline)}
-                      className="p-2 rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-zinc-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="p-2 rounded-lg text-[#788c5d] hover:text-[#788c5d] hover:bg-[#2a2a28] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                       title={
                         pipeline.steps.length === 0
                           ? "Add steps before running"
@@ -305,14 +305,14 @@ export default function Pipelines() {
                   )}
                   <button
                     onClick={() => setEditingPipelineId(pipeline.id)}
-                    className="p-2 rounded-lg text-zinc-500 hover:text-indigo-400 hover:bg-zinc-800 transition-colors"
+                    className="p-2 rounded-lg text-[#b0aea5]/60 hover:text-[#d97757] hover:bg-[#2a2a28] transition-colors"
                     title="Edit pipeline"
                   >
                     <Pencil size={16} />
                   </button>
                   <button
                     onClick={() => handleDelete(pipeline.id)}
-                    className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors"
+                    className="p-2 rounded-lg text-[#b0aea5]/60 hover:text-[#c45c4a] hover:bg-[#2a2a28] transition-colors"
                     title="Delete pipeline"
                   >
                     <Trash2 size={16} />
@@ -329,13 +329,13 @@ export default function Pipelines() {
                       return (
                         <div key={step.id} className="flex items-center gap-2">
                           {idx > 0 && (
-                            <span className="text-zinc-600 text-sm font-mono">
+                            <span className="text-[#b0aea5]/60 text-sm font-mono">
                               &rarr;
                             </span>
                           )}
                           <button
                             onClick={() => step.output && toggleOutput(step.id)}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-800 border ${stepBorderColor[step.status] || "border-zinc-700"} ${step.output ? "cursor-pointer hover:bg-zinc-750" : "cursor-default"} transition-colors`}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2a2a28] border ${stepBorderColor[step.status] || "border-[#3a3a37]"} ${step.output ? "cursor-pointer hover:bg-[#3a3a37]" : "cursor-default"} transition-colors`}
                           >
                             {stepStatusIcon[step.status] || stepStatusIcon.pending}
                             {agent && (
@@ -349,13 +349,13 @@ export default function Pipelines() {
                                 {agent.icon || agent.name.charAt(0)}
                               </div>
                             )}
-                            <span className="text-xs text-zinc-300">
+                            <span className="text-xs text-[#e8e6dc]">
                               {agent?.name || step.agentId}
                             </span>
                             {step.output && (
                               <ChevronDown
                                 size={12}
-                                className={`text-zinc-500 transition-transform ${expandedOutputs.has(step.id) ? "rotate-180" : ""}`}
+                                className={`text-[#b0aea5]/60 transition-transform ${expandedOutputs.has(step.id) ? "rotate-180" : ""}`}
                               />
                             )}
                           </button>
@@ -372,14 +372,14 @@ export default function Pipelines() {
                       return (
                         <div
                           key={`output-${step.id}`}
-                          className="mt-2 rounded-lg bg-zinc-950 border border-zinc-800 p-3"
+                          className="mt-2 rounded-lg bg-[#141413] border border-[#2a2a28] p-3"
                         >
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xs font-medium text-zinc-400">
+                            <span className="text-xs font-medium text-[#b0aea5]">
                               Output from {agent?.name || step.agentId}
                             </span>
                           </div>
-                          <pre className="text-xs text-zinc-300 whitespace-pre-wrap break-words max-h-48 overflow-y-auto font-mono">
+                          <pre className="text-xs text-[#e8e6dc] whitespace-pre-wrap break-words max-h-48 overflow-y-auto font-mono">
                             {step.output}
                           </pre>
                         </div>
@@ -387,12 +387,12 @@ export default function Pipelines() {
                     })}
                 </div>
               ) : (
-                <p className="text-xs text-zinc-500 mt-2">No steps configured</p>
+                <p className="text-xs text-[#b0aea5]/60 mt-2">No steps configured</p>
               )}
 
               {/* Last run timestamp */}
               {pipeline.lastRunAt && (
-                <p className="text-xs text-zinc-600 mt-3">
+                <p className="text-xs text-[#b0aea5]/60 mt-3">
                   Last run: {new Date(pipeline.lastRunAt).toLocaleString()}
                 </p>
               )}

@@ -147,20 +147,20 @@ export default function ClaudeSettingsEditor({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-zinc-900 border border-zinc-700 rounded-xl w-[560px] max-h-[80vh] flex flex-col shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#141413]/80">
+      <div className="bg-[#1e1e1c] border border-[#3a3a37] rounded-xl w-[560px] max-h-[80vh] flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a2a28]">
           <div className="flex items-center gap-2">
-            <Settings size={18} className="text-indigo-400" />
-            <h2 className="text-sm font-semibold text-white">
+            <Settings size={18} className="text-[#d97757]" />
+            <h2 className="text-sm font-semibold text-[#faf9f5]">
               Claude Settings
             </h2>
-            <span className="text-xs text-zinc-500">({remoteName})</span>
+            <span className="text-xs text-[#b0aea5]/60">({remoteName})</span>
           </div>
           <button
             onClick={onClose}
-            className="text-zinc-400 hover:text-white transition-colors"
+            className="text-[#b0aea5] hover:text-[#faf9f5] transition-colors"
           >
             <X size={18} />
           </button>
@@ -168,17 +168,17 @@ export default function ClaudeSettingsEditor({
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 size={20} className="animate-spin text-zinc-400" />
+            <Loader2 size={20} className="animate-spin text-[#b0aea5]" />
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
             {/* Model selector */}
             <div className="space-y-1.5">
-              <label className="text-xs text-zinc-400 font-medium">Model</label>
+              <label className="text-xs text-[#b0aea5] font-medium">Model</label>
               <select
                 value={settings.model ?? ""}
                 onChange={(e) => setModel(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-lg bg-[#1e1e1c] border border-[#2a2a28] text-[#faf9f5] text-sm focus:outline-none focus:border-[#d97757]"
               >
                 <option value="">Default</option>
                 {MODEL_OPTIONS.map((m) => (
@@ -191,11 +191,11 @@ export default function ClaudeSettingsEditor({
 
             {/* Permissions */}
             <div className="space-y-2">
-              <label className="text-xs text-zinc-400 font-medium">
+              <label className="text-xs text-[#b0aea5] font-medium">
                 Tool Permissions
               </label>
-              <div className="bg-zinc-800/50 rounded-lg p-3 space-y-1">
-                <div className="grid grid-cols-3 gap-x-4 text-xs text-zinc-500 pb-1 border-b border-zinc-700 mb-2">
+              <div className="bg-[#2a2a28]/50 rounded-lg p-3 space-y-1">
+                <div className="grid grid-cols-3 gap-x-4 text-xs text-[#b0aea5]/60 pb-1 border-b border-[#3a3a37] mb-2">
                   <span>Tool</span>
                   <span className="text-center">Allow</span>
                   <span className="text-center">Deny</span>
@@ -205,13 +205,13 @@ export default function ClaudeSettingsEditor({
                     key={tool}
                     className="grid grid-cols-3 gap-x-4 items-center py-1"
                   >
-                    <span className="text-xs text-zinc-300">{tool}</span>
+                    <span className="text-xs text-[#e8e6dc]">{tool}</span>
                     <label className="flex justify-center">
                       <input
                         type="checkbox"
                         checked={allowList.includes(tool)}
                         onChange={() => toggleAllow(tool)}
-                        className="rounded border-zinc-600 bg-zinc-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0"
+                        className="rounded border-[#3a3a37] bg-[#2a2a28] text-[#788c5d] focus:ring-[#788c5d] focus:ring-offset-0"
                       />
                     </label>
                     <label className="flex justify-center">
@@ -219,7 +219,7 @@ export default function ClaudeSettingsEditor({
                         type="checkbox"
                         checked={denyList.includes(tool)}
                         onChange={() => toggleDeny(tool)}
-                        className="rounded border-zinc-600 bg-zinc-800 text-red-500 focus:ring-red-500 focus:ring-offset-0"
+                        className="rounded border-[#3a3a37] bg-[#2a2a28] text-[#c45c4a] focus:ring-[#c45c4a] focus:ring-offset-0"
                       />
                     </label>
                   </div>
@@ -231,7 +231,7 @@ export default function ClaudeSettingsEditor({
             <div className="space-y-1.5">
               <button
                 onClick={() => setRawExpanded(!rawExpanded)}
-                className="flex items-center gap-1.5 text-xs text-zinc-400 font-medium hover:text-white transition-colors"
+                className="flex items-center gap-1.5 text-xs text-[#b0aea5] font-medium hover:text-[#faf9f5] transition-colors"
               >
                 {rawExpanded ? (
                   <ChevronDown size={14} />
@@ -246,7 +246,7 @@ export default function ClaudeSettingsEditor({
                   onChange={(e) => handleRawChange(e.target.value)}
                   rows={10}
                   spellCheck={false}
-                  className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-xs font-mono placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500 resize-none"
+                  className="w-full px-3 py-2 rounded-lg bg-[#1e1e1c] border border-[#2a2a28] text-[#faf9f5] text-xs font-mono placeholder:text-[#b0aea5]/60 focus:outline-none focus:border-[#d97757] resize-none"
                 />
               )}
             </div>
@@ -254,22 +254,22 @@ export default function ClaudeSettingsEditor({
         )}
 
         {/* Footer */}
-        <div className="px-4 py-3 border-t border-zinc-800 flex items-center justify-between">
+        <div className="px-4 py-3 border-t border-[#2a2a28] flex items-center justify-between">
           <div className="text-xs">
-            {error && <span className="text-red-400">{error}</span>}
-            {successMsg && <span className="text-emerald-400">{successMsg}</span>}
+            {error && <span className="text-[#c45c4a]">{error}</span>}
+            {successMsg && <span className="text-[#788c5d]">{successMsg}</span>}
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors"
+              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#e8e6dc] transition-colors"
             >
               Close
             </button>
             <button
               onClick={handleSave}
               disabled={saving || loading}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50"
             >
               {saving ? (
                 <Loader2 size={14} className="animate-spin" />
