@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Server as ServerIcon,
   Trash2,
@@ -9,11 +9,13 @@ import {
   Download,
   AlertCircle,
   ArrowUpCircle,
+  Wrench,
 } from "lucide-react";
 import type { Remote } from "../../stores/remoteStore";
 import { useRemoteStore } from "../../stores/remoteStore";
 import { tauriInvoke } from "../../lib/tauri";
 import ClaudeSettingsEditor from "./ClaudeSettingsEditor";
+import RemoteAdminPanel from "./RemoteAdminPanel";
 
 interface ProbeResult {
   claudePath: string | null;
@@ -24,6 +26,13 @@ interface ProbeResult {
   configDir: string | null;
   settingsFormat: string;
   shell: string;
+}
+
+interface UpdateResult {
+  updated: boolean;
+  oldVersion: string;
+  newVersion: string;
+  message: string;
 }
 
 interface RemoteCardProps {
@@ -50,8 +59,21 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
   const [installing, setInstalling] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [updateNotification, setUpdateNotification] = useState<{
+    message: string;
+    type: "success" | "info";
+  } | null>(null);
   const testConnection = useRemoteStore((s) => s.testConnection);
   const remove = useRemoteStore((s) => s.remove);
+
+  // Auto-fade update notification
+  useEffect(() => {
+    if (!updateNotification) return;
+    const duration = updateNotification.type === "success" ? 5000 : 3000;
+    const timer = setTimeout(() => setUpdateNotification(null), duration);
+    return () => clearTimeout(timer);
+  }, [updateNotification]);
 
   const handleTest = async () => {
     setTesting(true);
@@ -103,8 +125,9 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
 
   const handleUpdate = async () => {
     setUpdating(true);
+    setUpdateNotification(null);
     try {
-      const newVersion = await tauriInvoke<string>("update_claude_remote", {
+      const result = await tauriInvoke<UpdateResult>("update_claude_remote", {
         remoteId: remote.id,
       });
       // Re-probe to get fresh data
@@ -112,9 +135,15 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
         id: remote.id,
       });
       setProbeResult(probe);
-      alert(`Claude updated to ${newVersion}`);
+      setUpdateNotification({
+        message: result.message,
+        type: result.updated ? "success" : "info",
+      });
     } catch (e) {
-      alert(`Update failed: ${e}`);
+      setUpdateNotification({
+        message: `Update failed: ${e}`,
+        type: "info",
+      });
     } finally {
       setUpdating(false);
     }
@@ -200,25 +229,40 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
           </div>
         )}
 
-        {/* Claude installed badge with version and update button */}
+        {/* Claude installed badge with version and check updates button */}
         {claudeInstalled && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#788c5d]/10 border border-[#788c5d]/20">
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#788c5d]">
-              Claude {probeResult?.claudeVersion || "installed"}
-            </span>
-            <button
-              onClick={handleUpdate}
-              disabled={updating}
-              className="ml-auto flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-[#2a2a28] hover:bg-[#3a3a37] text-[#b0aea5] hover:text-[#faf9f5] transition-colors disabled:opacity-50"
-              title="Update Claude"
-            >
-              {updating ? (
-                <Loader2 size={12} className="animate-spin text-[#6a9bcc]" />
-              ) : (
-                <ArrowUpCircle size={12} />
-              )}
-              Update
-            </button>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#788c5d]/10 border border-[#788c5d]/20">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#788c5d]">
+                Claude {probeResult?.claudeVersion || "installed"}
+              </span>
+              <button
+                onClick={handleUpdate}
+                disabled={updating}
+                className="ml-auto flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-[#2a2a28] hover:bg-[#3a3a37] text-[#b0aea5] hover:text-[#faf9f5] transition-colors disabled:opacity-50"
+                title="Check for updates"
+              >
+                {updating ? (
+                  <Loader2 size={12} className="animate-spin text-[#6a9bcc]" />
+                ) : (
+                  <ArrowUpCircle size={12} />
+                )}
+                {updating ? "Checking..." : "Check Updates"}
+              </button>
+            </div>
+
+            {/* Inline update notification */}
+            {updateNotification && (
+              <div
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity ${
+                  updateNotification.type === "success"
+                    ? "bg-[#d97757]/10 border border-[#d97757]/20 text-[#d97757]"
+                    : "bg-[#788c5d]/10 border border-[#788c5d]/20 text-[#788c5d]"
+                }`}
+              >
+                {updateNotification.message}
+              </div>
+            )}
           </div>
         )}
 
@@ -243,11 +287,18 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
             Edit
           </button>
           <button
+            onClick={() => setAdminOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#b0aea5] hover:text-[#faf9f5] transition-colors"
+          >
+            <Wrench size={14} />
+            Manage
+          </button>
+          <button
             onClick={() => setSettingsOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#b0aea5] hover:text-[#faf9f5] transition-colors"
           >
             <Settings size={14} />
-            Claude Settings
+            Settings
           </button>
           <button
             onClick={handleDelete}
@@ -262,6 +313,13 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
       <ClaudeSettingsEditor
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+        remoteId={remote.id}
+        remoteName={remote.name}
+      />
+
+      <RemoteAdminPanel
+        open={adminOpen}
+        onClose={() => setAdminOpen(false)}
         remoteId={remote.id}
         remoteName={remote.name}
       />

@@ -494,17 +494,43 @@ pub async fn install_claude_remote(
     Ok(output)
 }
 
+/// Structured result returned by the Claude update command.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateResult {
+    pub updated: bool,
+    pub old_version: String,
+    pub new_version: String,
+    pub message: String,
+}
+
 /// Update (or re-install) Claude CLI on a remote machine.
 ///
 /// Tries `claude update` first; if that fails, falls back to the
 /// official install script which handles both fresh installs and updates.
 /// Re-probes after the update to refresh cached capabilities.
+/// Returns a structured `UpdateResult` comparing old and new versions.
 #[tauri::command]
 pub async fn update_claude_remote(
     state: State<'_, AppState>,
     remote_id: String,
-) -> Result<String, String> {
+) -> Result<UpdateResult, String> {
     let handle = get_handle(&state, &remote_id).await?;
+
+    // Read the old version from the cached probe file (if available)
+    let old_version = {
+        let store = state.config.lock().await;
+        let probe_path = store.base_dir().join("probes").join(format!("{}.json", remote_id));
+        if probe_path.exists() {
+            fs::read_to_string(&probe_path)
+                .ok()
+                .and_then(|json| serde_json::from_str::<ProbeResult>(&json).ok())
+                .and_then(|p| p.claude_version)
+                .unwrap_or_else(|| "unknown".to_string())
+        } else {
+            "unknown".to_string()
+        }
+    };
 
     // Try `claude update` first, fall back to the install script
     let result = exec_command(
@@ -548,10 +574,23 @@ pub async fn update_claude_remote(
             .map_err(|e| format!("Failed to write probe file: {}", e))?;
     }
 
-    // Return the new version (or the full output if version not found)
-    let version = probe
+    let new_version = probe
         .claude_version
-        .unwrap_or_else(|| "installed (version unknown)".to_string());
+        .unwrap_or_else(|| "unknown".to_string());
 
-    Ok(version)
+    let updated = old_version != new_version && old_version != "unknown";
+    let message = if updated {
+        format!("Updated to {}", new_version)
+    } else if old_version == "unknown" {
+        format!("Claude is at {}", new_version)
+    } else {
+        format!("Already on latest version ({})", new_version)
+    };
+
+    Ok(UpdateResult {
+        updated,
+        old_version,
+        new_version,
+        message,
+    })
 }

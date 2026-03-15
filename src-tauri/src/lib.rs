@@ -61,6 +61,12 @@ pub fn run() {
             commands::pipeline_commands::execute_pipeline,
             commands::pipeline_commands::get_pipeline_status,
             commands::pipeline_commands::cancel_pipeline,
+            commands::remote_admin_commands::list_remote_skills,
+            commands::remote_admin_commands::list_remote_hooks,
+            commands::remote_admin_commands::list_remote_mcps,
+            commands::remote_admin_commands::list_remote_agents,
+            commands::remote_admin_commands::remove_remote_extension,
+            commands::remote_admin_commands::toggle_remote_extension,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

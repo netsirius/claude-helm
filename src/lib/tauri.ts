@@ -22,6 +22,12 @@ const LOGGED_COMMANDS = [
   "write_remote_claude_config",
   "install_claude_remote",
   "update_claude_remote",
+  "list_remote_skills",
+  "list_remote_hooks",
+  "list_remote_mcps",
+  "list_remote_agents",
+  "remove_remote_extension",
+  "toggle_remote_extension",
 ];
 
 export async function tauriInvoke<T>(
