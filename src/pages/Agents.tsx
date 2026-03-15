@@ -182,39 +182,31 @@ export default function Agents() {
     });
   };
 
+  const [remoteUrl, setRemoteUrl] = useState<string | null>(null);
+
   const handleOpenRemote = async (agent: Agent) => {
     if (!agent.currentSessionId || !agent.currentRemoteId) return;
+    let result = "";
     try {
-      const url = await tauriInvoke<string>("start_remote_control", {
+      result = await tauriInvoke<string>("start_remote_control", {
         remoteId: agent.currentRemoteId,
         sessionId: agent.currentSessionId,
       });
+    } catch (e) {
+      result = String(e);
+    }
 
-      if (!url || !url.startsWith("https://")) {
-        alert("Could not get remote control URL.");
-        return;
-      }
-
-      await navigator.clipboard.writeText(url);
-
-      // Try opening with Tauri opener, fallback to window.open
-      let opened = false;
+    if (result && result.startsWith("https://")) {
+      setRemoteUrl(result);
+      navigator.clipboard.writeText(result).catch(() => {});
       try {
         const { openUrl } = await import("@tauri-apps/plugin-opener");
-        await openUrl(url);
-        opened = true;
+        await openUrl(result);
       } catch {
-        try {
-          const w = window.open(url, "_blank");
-          opened = !!w;
-        } catch { /* ignore */ }
+        // Opener failed, URL is shown in the banner below
       }
-
-      if (!opened) {
-        alert(`Open this URL in your browser:\n\n${url}\n\n(Copied to clipboard)`);
-      }
-    } catch (e) {
-      alert(`Remote control error: ${e}`);
+    } else {
+      alert(`Could not get remote URL.\n\nResponse: ${result || "(empty)"}\n\nTip: Open Terminal instead and type /remote-control manually.`);
     }
   };
 
@@ -299,6 +291,32 @@ export default function Agents() {
               onDelete={handleDelete}
             />
           ))}
+        </div>
+      )}
+
+      {/* Remote Control URL banner */}
+      {remoteUrl && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-[#1e1e1c] border border-[#d97757] rounded-xl p-4 shadow-2xl max-w-lg w-full">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-[#faf9f5] mb-1">Remote Control Active</p>
+              <a
+                href={remoteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-[#d97757] hover:underline break-all font-mono"
+              >
+                {remoteUrl}
+              </a>
+              <p className="text-[10px] text-[#b0aea5] mt-1">Copied to clipboard</p>
+            </div>
+            <button
+              onClick={() => setRemoteUrl(null)}
+              className="text-[#b0aea5] hover:text-[#faf9f5] text-lg leading-none"
+            >
+              ×
+            </button>
+          </div>
         </div>
       )}
 
