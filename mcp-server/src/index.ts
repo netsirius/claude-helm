@@ -75,7 +75,7 @@ function sleep(ms: number): Promise<void> {
 // ── Server ───────────────────────────────────────────────────────────
 
 const server = new McpServer({
-  name: "claude-manager-mcp-server",
+  name: "claude-helm-mcp-server",
   version: "1.0.0",
 });
 
@@ -84,7 +84,7 @@ const server = new McpServer({
 // ─────────────────────────────────────────────────────────────────────
 server.tool(
   "cm_list_remotes",
-  "List all configured remote machines in Claude Manager. Returns each remote's id, name, host, port, user, status, tags, and group.",
+  "List all configured remote machines in Claude Helm. Returns each remote's id, name, host, port, user, status, tags, and group.",
   {},
   {
     readOnlyHint: true,
@@ -109,7 +109,7 @@ server.tool(
 // ─────────────────────────────────────────────────────────────────────
 server.tool(
   "cm_add_remote",
-  "Add a new remote machine to Claude Manager. Provide at minimum a name, host, user, and sshKeyPath. Optionally set port (default 22), tags, and group.",
+  "Add a new remote machine to Claude Helm. Provide at minimum a name, host, user, and sshKeyPath. Optionally set port (default 22), tags, and group.",
   {
     name: z.string().describe("Human-friendly name for this remote"),
     host: z.string().describe("Hostname or IP address"),
@@ -217,7 +217,7 @@ server.tool(
 // ─────────────────────────────────────────────────────────────────────
 server.tool(
   "cm_list_agents",
-  "List all configured agents in Claude Manager. Returns each agent's id, name, role, status (has active session or not), model, and assigned remote info.",
+  "List all configured agents in Claude Helm. Returns each agent's id, name, role, status (has active session or not), model, and assigned remote info.",
   {},
   {
     readOnlyHint: true,
@@ -262,7 +262,7 @@ server.tool(
 // ─────────────────────────────────────────────────────────────────────
 server.tool(
   "cm_create_agent",
-  "Create a new agent in Claude Manager. An agent represents a Claude Code instance that can be started on a remote machine.",
+  "Create a new agent in Claude Helm. An agent represents a Claude Code instance that can be started on a remote machine.",
   {
     name: z.string().describe("Agent display name"),
     role: z.string().describe("Agent role description (e.g. 'Frontend Developer')"),
@@ -769,7 +769,7 @@ server.tool(
 // ─────────────────────────────────────────────────────────────────────
 server.tool(
   "cm_list_pipelines",
-  "List all configured pipelines in Claude Manager. A pipeline is a sequence of agent steps that can be executed in order.",
+  "List all configured pipelines in Claude Helm. A pipeline is a sequence of agent steps that can be executed in order.",
   {},
   {
     readOnlyHint: true,

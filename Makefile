@@ -68,30 +68,30 @@ dmg: build ## Build and locate the DMG
 	@ls -lh src-tauri/target/release/bundle/dmg/*.dmg 2>/dev/null || echo "No DMG found"
 
 install: build ## Install the app to /Applications
-	@if [ -d "src-tauri/target/release/bundle/macos/Claude Manager.app" ]; then \
-		cp -rf "src-tauri/target/release/bundle/macos/Claude Manager.app" /Applications/; \
-		echo "✓ Installed to /Applications/Claude Manager.app"; \
+	@if [ -d "src-tauri/target/release/bundle/macos/Claude Helm.app" ]; then \
+		cp -rf "src-tauri/target/release/bundle/macos/Claude Helm.app" /Applications/; \
+		echo "✓ Installed to /Applications/Claude Helm.app"; \
 	else \
 		echo "✗ App bundle not found. Run 'make build' first."; \
 	fi
 
 uninstall: ## Remove the app from /Applications
-	rm -rf "/Applications/Claude Manager.app"
+	rm -rf "/Applications/Claude Helm.app"
 	@echo "✓ Uninstalled"
 
 # ─── Run ──────────────────────────────────────────────────────
 
 open: ## Open the built app (without rebuilding)
-	@if [ -d "src-tauri/target/release/bundle/macos/Claude Manager.app" ]; then \
-		open "src-tauri/target/release/bundle/macos/Claude Manager.app"; \
-	elif [ -d "/Applications/Claude Manager.app" ]; then \
-		open "/Applications/Claude Manager.app"; \
+	@if [ -d "src-tauri/target/release/bundle/macos/Claude Helm.app" ]; then \
+		open "src-tauri/target/release/bundle/macos/Claude Helm.app"; \
+	elif [ -d "/Applications/Claude Helm.app" ]; then \
+		open "/Applications/Claude Helm.app"; \
 	else \
 		echo "✗ App not found. Run 'make build' first."; \
 	fi
 
 kill: ## Force quit the running app
-	pkill -f "Claude Manager" 2>/dev/null || pkill -f "claude-manager" 2>/dev/null || echo "Not running"
+	pkill -f "Claude Helm" 2>/dev/null || pkill -f "claude-helm" 2>/dev/null || echo "Not running"
 
 # ─── Clean ────────────────────────────────────────────────────
 
@@ -121,7 +121,7 @@ logs: ## Show recent app logs
 # ─── Info ─────────────────────────────────────────────────────
 
 info: ## Show project info and versions
-	@echo "Claude Manager v$$(grep '"version"' package.json | head -1 | sed 's/.*: "//;s/".*//')"
+	@echo "Claude Helm v$$(grep '"version"' package.json | head -1 | sed 's/.*: "//;s/".*//')"
 	@echo ""
 	@echo "Stack:"
 	@echo "  Node:    $$(node --version 2>/dev/null || echo 'not found')"
@@ -135,7 +135,7 @@ info: ## Show project info and versions
 	@echo "  TS/TSX:  $$(find src -name '*.ts' -o -name '*.tsx' | wc -l | tr -d ' ') files"
 	@echo ""
 	@echo "Build:"
-	@ls -lh src-tauri/target/release/claude-manager 2>/dev/null | awk '{print "  Binary: "$$5}' || echo "  Binary: not built"
+	@ls -lh src-tauri/target/release/claude-helm 2>/dev/null | awk '{print "  Binary: "$$5}' || echo "  Binary: not built"
 	@ls -lh src-tauri/target/release/bundle/dmg/*.dmg 2>/dev/null | awk '{print "  DMG:    "$$5}' || echo "  DMG:    not built"
 
 # ─── Help ─────────────────────────────────────────────────────

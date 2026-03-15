@@ -1,7 +1,7 @@
 {
-  "name": "claude-manager-mcp-server",
+  "name": "claude-helm-mcp-server",
   "version": "1.0.0",
-  "description": "MCP server for Claude Manager — manage remotes, agents, and sessions",
+  "description": "MCP server for Claude Helm — manage remotes, agents, and sessions",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

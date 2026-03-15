@@ -26,7 +26,7 @@ export default function Sidebar() {
     <aside className="w-56 shrink-0 bg-[#1a1a19] border-r border-[#2a2a28] flex flex-col">
       <div className="px-4 py-5">
         <h1 className="text-lg font-bold text-[#faf9f5] tracking-tight">
-          Claude Manager
+          Claude Helm
         </h1>
       </div>
 
