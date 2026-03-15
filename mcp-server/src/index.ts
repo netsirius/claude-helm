@@ -946,5 +946,103 @@ server.tool(
 
 // ── Start server ─────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────
+// 12. cm_send_prompt — Send a prompt/command to a running agent
+// ─────────────────────────────────────────────────────────────────────
+server.tool(
+  "cm_send_prompt",
+  "Send a prompt or command to a running agent. The agent must have an active tmux session. The prompt is written to a temp file on the remote and sent via tmux send-keys. Returns confirmation that the prompt was sent.",
+  {
+    agentId: z.string().describe("UUID of the agent to send the prompt to"),
+    prompt: z.string().min(1).describe("The prompt or command to send to the agent"),
+  },
+  {
+    readOnlyHint: false,
+    destructiveHint: false,
+  },
+  async ({ agentId, prompt }) => {
+    const agent = findAgent(agentId);
+    if (!agent) {
+      return { content: [{ type: "text" as const, text: `Agent '${agentId}' not found` }], isError: true };
+    }
+    if (!agent.currentSessionId || !agent.currentRemoteId) {
+      return { content: [{ type: "text" as const, text: `Agent '${agent.name}' is not running. Start it first with cm_start_agent.` }], isError: true };
+    }
+
+    const remote = findRemote(agent.currentRemoteId);
+    if (!remote) {
+      return { content: [{ type: "text" as const, text: `Remote '${agent.currentRemoteId}' not found` }], isError: true };
+    }
+
+    // Write prompt to temp file on remote, then send via tmux
+    const escaped = prompt.replace(/'/g, "'\\''");
+    const stepId = Date.now().toString(36);
+    const writeCmd = `printf '%s' '${escaped}' > /tmp/cm-prompt-${stepId}.txt`;
+    await sshExec(remote.host, remote.port, remote.user, remote.sshKeyPath, writeCmd);
+
+    const sendCmd = `tmux send-keys -t '${agent.currentSessionId}' "$(cat /tmp/cm-prompt-${stepId}.txt)" Enter`;
+    await sshExec(remote.host, remote.port, remote.user, remote.sshKeyPath, sendCmd);
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `Prompt sent to agent '${agent.name}' (session ${agent.currentSessionId}).\nUse cm_watch_agent to see the output.`,
+        },
+      ],
+    };
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────
+// 13. cm_watch_agent — Get full terminal output of a running agent
+// ─────────────────────────────────────────────────────────────────────
+server.tool(
+  "cm_watch_agent",
+  "Capture the terminal output of a running agent. Returns the last N lines from the agent's tmux pane, showing what Claude is doing or has done. Useful after sending a prompt to see the result.",
+  {
+    agentId: z.string().describe("UUID of the agent to watch"),
+    lines: z.number().optional().default(50).describe("Number of lines to capture (default 50, max 500)"),
+  },
+  {
+    readOnlyHint: true,
+    destructiveHint: false,
+  },
+  async ({ agentId, lines }) => {
+    const agent = findAgent(agentId);
+    if (!agent) {
+      return { content: [{ type: "text" as const, text: `Agent '${agentId}' not found` }], isError: true };
+    }
+    if (!agent.currentSessionId || !agent.currentRemoteId) {
+      return { content: [{ type: "text" as const, text: `Agent '${agent.name}' is not running.` }], isError: true };
+    }
+
+    const remote = findRemote(agent.currentRemoteId);
+    if (!remote) {
+      return { content: [{ type: "text" as const, text: `Remote '${agent.currentRemoteId}' not found` }], isError: true };
+    }
+
+    const captureLines = Math.min(lines, 500);
+    const cmd = `tmux capture-pane -t '${agent.currentSessionId}' -p -S -${captureLines}`;
+    const result = await sshExec(remote.host, remote.port, remote.user, remote.sshKeyPath, cmd);
+
+    if (result.code !== 0) {
+      return { content: [{ type: "text" as const, text: `Failed to capture output: ${result.stderr}` }], isError: true };
+    }
+
+    // Strip ANSI escape codes for readability
+    const clean = result.stdout.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "");
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `Terminal output for '${agent.name}' (last ${captureLines} lines):\n\n${clean}`,
+        },
+      ],
+    };
+  },
+);
+
 const transport = new StdioServerTransport();
 await server.connect(transport);
