@@ -67,6 +67,15 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
   const testConnection = useRemoteStore((s) => s.testConnection);
   const remove = useRemoteStore((s) => s.remove);
 
+  // Auto-probe on mount if remote is online
+  useEffect(() => {
+    if (remote.status === "online" && !probed) {
+      tauriInvoke<ProbeResult>("probe_remote", { id: remote.id })
+        .then((probe) => { setProbeResult(probe); setProbed(true); })
+        .catch(() => { setProbed(true); });
+    }
+  }, [remote.id, remote.status, probed]);
+
   // Auto-fade update notification
   useEffect(() => {
     if (!updateNotification) return;

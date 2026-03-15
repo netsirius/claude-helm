@@ -61,45 +61,36 @@ function getAgentStatus(agent: Agent): string {
   return "running";
 }
 
+const activityConfig: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
+  waiting: {
+    icon: <ChevronRight size={10} />,
+    color: "text-[#b0aea5]",
+    bg: "bg-[#2a2a28]",
+  },
+  thinking: {
+    icon: <Brain size={10} className="animate-pulse" />,
+    color: "text-[#6a9bcc]",
+    bg: "bg-[#6a9bcc]/10",
+  },
+  working: {
+    icon: <Wrench size={10} />,
+    color: "text-[#d97757]",
+    bg: "bg-[#d97757]/10",
+  },
+  busy: {
+    icon: <Activity size={10} />,
+    color: "text-[#d97757]",
+    bg: "bg-[#d97757]/10",
+  },
+};
+
 function ActivityIndicator({ activity }: { activity: AgentActivity }) {
-  const { status, detail, lastOutput } = activity;
-
-  let icon: React.ReactNode;
-  let colorClass: string;
-
-  switch (status) {
-    case "waiting":
-      icon = <ChevronRight size={12} />;
-      colorClass = "text-[#b0aea5]";
-      break;
-    case "thinking":
-      icon = <Brain size={12} className="animate-pulse" />;
-      colorClass = "text-[#6a9bcc]";
-      break;
-    case "working":
-      icon = <Wrench size={12} />;
-      colorClass = "text-[#d97757]";
-      break;
-    default:
-      icon = <Activity size={12} />;
-      colorClass = "text-[#d97757]";
-      break;
-  }
+  const cfg = activityConfig[activity.status] || activityConfig.busy;
 
   return (
-    <div className="space-y-1.5">
-      {/* Activity status line */}
-      <div className={`flex items-center gap-1.5 text-xs ${colorClass}`}>
-        {icon}
-        <span className="truncate">{detail}</span>
-      </div>
-
-      {/* Output preview */}
-      {lastOutput && (
-        <div className="bg-[#141413] rounded px-2 py-1 font-mono text-[10px] text-[#b0aea5] leading-relaxed overflow-hidden whitespace-pre-wrap break-all max-h-[36px]">
-          {lastOutput}
-        </div>
-      )}
+    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${cfg.bg} ${cfg.color}`}>
+      {cfg.icon}
+      <span className="text-xs truncate flex-1">{activity.detail}</span>
     </div>
   );
 }
