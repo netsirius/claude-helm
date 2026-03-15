@@ -42,24 +42,26 @@ impl ConfigStore {
         }
     }
 
-    /// Load a config file with backward-compatible migration.
+    /// Load a config file with backward-compatible fallback paths.
     ///
-    /// If `filename` does not exist but `fallback` does, loads from the fallback
-    /// path instead.  This supports renaming config files (e.g. vps.json -> remotes.json)
+    /// If `filename` does not exist, tries each fallback in order.
+    /// This supports renaming config files (e.g. vps.json -> servers.json -> remotes.json)
     /// without losing existing data.
-    pub fn load_with_fallback<T: DeserializeOwned + Default>(
+    pub fn load_with_fallbacks<T: DeserializeOwned + Default>(
         &self,
         filename: &str,
-        fallback: &str,
+        fallbacks: &[&str],
     ) -> T {
         let path = self.base_dir.join(filename);
         if path.exists() {
             return self.load(filename);
         }
 
-        let fallback_path = self.base_dir.join(fallback);
-        if fallback_path.exists() {
-            return self.load(fallback);
+        for fallback in fallbacks {
+            let fallback_path = self.base_dir.join(fallback);
+            if fallback_path.exists() {
+                return self.load(fallback);
+            }
         }
 
         T::default()

@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Server as ServerIcon, Trash2, Loader2, Wifi, Pencil } from "lucide-react";
-import type { Server } from "../../stores/serverStore";
-import { useServerStore } from "../../stores/serverStore";
+import type { Remote } from "../../stores/remoteStore";
+import { useRemoteStore } from "../../stores/remoteStore";
 
-interface ServerCardProps {
-  server: Server;
-  onEdit?: (server: Server) => void;
+interface RemoteCardProps {
+  remote: Remote;
+  onEdit?: (remote: Remote) => void;
 }
 
 const statusColor: Record<string, string> = {
@@ -20,23 +20,23 @@ const statusLabel: Record<string, string> = {
   unknown: "Unknown",
 };
 
-export default function ServerCard({ server, onEdit }: ServerCardProps) {
+export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
   const [testing, setTesting] = useState(false);
-  const testConnection = useServerStore((s) => s.testConnection);
-  const remove = useServerStore((s) => s.remove);
+  const testConnection = useRemoteStore((s) => s.testConnection);
+  const remove = useRemoteStore((s) => s.remove);
 
   const handleTest = async () => {
     setTesting(true);
     try {
-      await testConnection(server.id);
+      await testConnection(remote.id);
     } finally {
       setTesting(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete server "${server.name}"?`)) return;
-    await remove(server.id);
+    if (!window.confirm(`Are you sure you want to delete remote "${remote.name}"?`)) return;
+    await remove(remote.id);
   };
 
   return (
@@ -47,32 +47,32 @@ export default function ServerCard({ server, onEdit }: ServerCardProps) {
             <ServerIcon size={20} className="text-zinc-400" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white">{server.name}</h3>
+            <h3 className="text-sm font-semibold text-white">{remote.name}</h3>
             <p className="text-xs text-zinc-400">
-              {server.user}@{server.host}:{server.port}
+              {remote.user}@{remote.host}:{remote.port}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5">
           <span
-            className={`inline-block w-2 h-2 rounded-full ${statusColor[server.status]}`}
+            className={`inline-block w-2 h-2 rounded-full ${statusColor[remote.status]}`}
           />
           <span className="text-xs text-zinc-400">
-            {statusLabel[server.status]}
+            {statusLabel[remote.status]}
           </span>
         </div>
       </div>
 
-      {server.group && (
+      {remote.group && (
         <p className="text-xs text-zinc-500">
-          Group: <span className="text-zinc-400">{server.group}</span>
+          Group: <span className="text-zinc-400">{remote.group}</span>
         </p>
       )}
 
-      {server.tags.length > 0 && (
+      {remote.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {server.tags.map((tag) => (
+          {remote.tags.map((tag) => (
             <span
               key={tag}
               className="px-2 py-0.5 text-xs rounded-full bg-zinc-800 text-zinc-300"
@@ -97,7 +97,7 @@ export default function ServerCard({ server, onEdit }: ServerCardProps) {
           Test
         </button>
         <button
-          onClick={() => onEdit?.(server)}
+          onClick={() => onEdit?.(remote)}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
         >
           <Pencil size={14} />

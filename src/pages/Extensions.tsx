@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { RefreshCw, Puzzle, ChevronDown, AlertTriangle } from "lucide-react";
-import { useServerStore } from "../stores/serverStore";
+import { useRemoteStore } from "../stores/remoteStore";
 import { tauriInvoke } from "../lib/tauri";
 
 interface Extension {
@@ -19,8 +19,8 @@ const TABS = [
 ];
 
 export default function Extensions() {
-  const { servers, fetch: fetchServers } = useServerStore();
-  const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
+  const { remotes, fetch: fetchRemotes } = useRemoteStore();
+  const [selectedRemoteId, setSelectedRemoteId] = useState<string | null>(null);
   const [extensions, setExtensions] = useState<Extension[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,15 +28,15 @@ export default function Extensions() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
-    fetchServers();
-  }, [fetchServers]);
+    fetchRemotes();
+  }, [fetchRemotes]);
 
-  const loadExtensions = async (serverId: string) => {
+  const loadExtensions = async (remoteId: string) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await tauriInvoke<Extension[]>("list_server_extensions", {
-        serverId,
+      const result = await tauriInvoke<Extension[]>("list_remote_extensions", {
+        remoteId,
       });
       setExtensions(result);
     } catch (err) {
@@ -53,13 +53,13 @@ export default function Extensions() {
     }
   };
 
-  const handleSelectServer = (serverId: string) => {
-    setSelectedServerId(serverId);
+  const handleSelectRemote = (remoteId: string) => {
+    setSelectedRemoteId(remoteId);
     setDropdownOpen(false);
-    loadExtensions(serverId);
+    loadExtensions(remoteId);
   };
 
-  const selectedServer = servers.find((s) => s.id === selectedServerId);
+  const selectedRemote = remotes.find((s) => s.id === selectedRemoteId);
   const filtered = extensions.filter((e) => e.extType === activeTab);
 
   return (
@@ -69,39 +69,39 @@ export default function Extensions() {
         <h1 className="text-2xl font-bold text-white">Extensions</h1>
 
         <div className="flex items-center gap-3">
-          {/* Server Selector */}
+          {/* Remote Selector */}
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 transition-colors min-w-[180px] justify-between"
             >
               <span className="truncate">
-                {selectedServer ? selectedServer.name : "Select server..."}
+                {selectedRemote ? selectedRemote.name : "Select remote..."}
               </span>
               <ChevronDown size={14} className="flex-shrink-0 text-zinc-500" />
             </button>
 
             {dropdownOpen && (
               <div className="absolute right-0 mt-2 w-64 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl z-50 overflow-hidden">
-                {servers.length === 0 ? (
+                {remotes.length === 0 ? (
                   <div className="px-4 py-3 text-sm text-zinc-400">
-                    No servers configured
+                    No remotes configured
                   </div>
                 ) : (
-                  servers.map((server) => (
+                  remotes.map((remote) => (
                     <button
-                      key={server.id}
-                      onClick={() => handleSelectServer(server.id)}
+                      key={remote.id}
+                      onClick={() => handleSelectRemote(remote.id)}
                       className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-800 transition-colors ${
-                        server.id === selectedServerId ? "bg-zinc-800/50" : ""
+                        remote.id === selectedRemoteId ? "bg-zinc-800/50" : ""
                       }`}
                     >
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-white truncate">
-                          {server.name}
+                          {remote.name}
                         </div>
                         <div className="text-xs text-zinc-500 truncate">
-                          {server.host}
+                          {remote.host}
                         </div>
                       </div>
                     </button>
@@ -113,8 +113,8 @@ export default function Extensions() {
 
           {/* Refresh */}
           <button
-            onClick={() => selectedServerId && loadExtensions(selectedServerId)}
-            disabled={!selectedServerId || loading}
+            onClick={() => selectedRemoteId && loadExtensions(selectedRemoteId)}
+            disabled={!selectedRemoteId || loading}
             className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-50"
             title="Refresh"
           >
@@ -137,17 +137,17 @@ export default function Extensions() {
         </div>
       )}
 
-      {/* No server selected */}
-      {!selectedServerId ? (
+      {/* No remote selected */}
+      {!selectedRemoteId ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="p-4 bg-zinc-900 rounded-2xl mb-4">
             <Puzzle size={32} className="text-zinc-500" />
           </div>
           <h2 className="text-lg font-semibold text-white mb-1">
-            Select a server
+            Select a remote
           </h2>
           <p className="text-sm text-zinc-400">
-            Choose a server to view its installed extensions.
+            Choose a remote to view its installed extensions.
           </p>
         </div>
       ) : (
@@ -178,7 +178,7 @@ export default function Extensions() {
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <p className="text-sm text-zinc-400">
                 No {TABS.find((t) => t.key === activeTab)?.label.toLowerCase()}{" "}
-                found on this server.
+                found on this remote.
               </p>
             </div>
           ) : (

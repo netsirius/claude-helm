@@ -1,42 +1,42 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Server, Wifi, WifiOff, Bot } from "lucide-react";
-import { useServerStore } from "../stores/serverStore";
+import { useRemoteStore } from "../stores/remoteStore";
 import { useAgentStore } from "../stores/agentStore";
 
 export default function Dashboard() {
-  const { servers, fetch: fetchServers } = useServerStore();
+  const { remotes, fetch: fetchRemotes } = useRemoteStore();
   const { agents, fetch: fetchAgents } = useAgentStore();
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchServers();
+    fetchRemotes();
     fetchAgents();
-  }, [fetchServers, fetchAgents]);
+  }, [fetchRemotes, fetchAgents]);
 
-  const totalServers = servers.length;
-  const onlineServers = servers.filter((s) => s.status === "online").length;
-  const offlineServers = servers.filter((s) => s.status === "offline").length;
+  const totalRemotes = remotes.length;
+  const onlineRemotes = remotes.filter((s) => s.status === "online").length;
+  const offlineRemotes = remotes.filter((s) => s.status === "offline").length;
   const activeAgents = agents.filter((a) => a.currentSessionId !== null).length;
 
   const stats = [
     {
-      label: "Total Servers",
-      value: totalServers,
+      label: "Total Remotes",
+      value: totalRemotes,
       icon: Server,
       color: "text-blue-400",
       bg: "bg-blue-400/10",
     },
     {
       label: "Online",
-      value: onlineServers,
+      value: onlineRemotes,
       icon: Wifi,
       color: "text-emerald-400",
       bg: "bg-emerald-400/10",
     },
     {
       label: "Offline",
-      value: offlineServers,
+      value: offlineRemotes,
       icon: WifiOff,
       color: "text-red-400",
       bg: "bg-red-400/10",

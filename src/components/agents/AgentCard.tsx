@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Play, Square, Copy, Trash2, Loader2 } from "lucide-react";
 import type { Agent } from "../../stores/agentStore";
-import type { Server } from "../../stores/serverStore";
+import type { Remote } from "../../stores/remoteStore";
 
 interface AgentCardProps {
   agent: Agent;
-  server: Server | undefined;
+  remote: Remote | undefined;
   onStart: (agent: Agent) => Promise<void>;
   onStop: (agent: Agent) => Promise<void>;
-  onOpen: (agent: Agent, server: Server) => void;
+  onOpen: (agent: Agent, remote: Remote) => void;
   onDelete: (agent: Agent) => Promise<void>;
 }
 
@@ -42,7 +42,7 @@ function getAgentStatus(agent: Agent): string {
 
 export default function AgentCard({
   agent,
-  server,
+  remote,
   onStart,
   onStop,
   onOpen,
@@ -101,9 +101,9 @@ export default function AgentCard({
             {agent.defaultModel.split("-").slice(0, 2).join("-")}
           </span>
         </span>
-        {server && (
+        {remote && (
           <span>
-            Server: <span className="text-zinc-300">{server.name}</span>
+            Remote: <span className="text-zinc-300">{remote.name}</span>
           </span>
         )}
       </div>
@@ -140,9 +140,9 @@ export default function AgentCard({
               Stop
             </button>
 
-            {server && (
+            {remote && (
               <button
-                onClick={() => onOpen(agent, server)}
+                onClick={() => onOpen(agent, remote)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors"
               >
                 <Copy size={14} />

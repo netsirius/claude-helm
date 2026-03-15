@@ -10,10 +10,10 @@ export interface Agent {
   defaultModel: string;
   defaultDir: string;
   claudeMd: string;
-  assignedServerId: string | null;
+  assignedRemoteId: string | null;
   tags: string[];
   currentSessionId: string | null;
-  currentServerId: string | null;
+  currentRemoteId: string | null;
   createdAt: string;
 }
 
@@ -29,7 +29,7 @@ interface AgentState {
       icon?: string;
       color?: string;
       defaultModel?: string;
-      assignedServerId?: string;
+      assignedRemoteId?: string;
     },
   ) => Promise<void>;
   remove: (id: string) => Promise<void>;
@@ -60,7 +60,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
         icon: opts?.icon,
         color: opts?.color,
         defaultModel: opts?.defaultModel,
-        assignedServerId: opts?.assignedServerId,
+        assignedRemoteId: opts?.assignedRemoteId,
       });
       await get().fetch();
     } catch (e) {

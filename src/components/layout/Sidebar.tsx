@@ -12,7 +12,7 @@ import {
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/servers", label: "Servers", icon: Server },
+  { to: "/remotes", label: "Remotes", icon: Server },
   { to: "/agents", label: "Agents", icon: Bot },
   { to: "/monitor", label: "Monitor", icon: Activity },
   { to: "/extensions", label: "Extensions", icon: Puzzle },

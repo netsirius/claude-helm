@@ -1,25 +1,25 @@
 import { useState } from "react";
 import { X } from "lucide-react";
-import { useServerStore } from "../../stores/serverStore";
-import type { Server } from "../../stores/serverStore";
+import { useRemoteStore } from "../../stores/remoteStore";
+import type { Remote } from "../../stores/remoteStore";
 
-interface EditServerDialogProps {
+interface EditRemoteDialogProps {
   open: boolean;
   onClose: () => void;
-  server: Server;
+  remote: Remote;
 }
 
-export default function EditServerDialog({ open, onClose, server }: EditServerDialogProps) {
-  const update = useServerStore((s) => s.update);
+export default function EditRemoteDialog({ open, onClose, remote }: EditRemoteDialogProps) {
+  const update = useRemoteStore((s) => s.update);
   const [submitting, setSubmitting] = useState(false);
 
-  const [name, setName] = useState(server.name);
-  const [host, setHost] = useState(server.host);
-  const [user, setUser] = useState(server.user);
-  const [sshKeyPath, setSshKeyPath] = useState(server.sshKeyPath);
-  const [port, setPort] = useState(String(server.port));
-  const [tags, setTags] = useState(server.tags.join(", "));
-  const [group, setGroup] = useState(server.group);
+  const [name, setName] = useState(remote.name);
+  const [host, setHost] = useState(remote.host);
+  const [user, setUser] = useState(remote.user);
+  const [sshKeyPath, setSshKeyPath] = useState(remote.sshKeyPath);
+  const [port, setPort] = useState(String(remote.port));
+  const [tags, setTags] = useState(remote.tags.join(", "));
+  const [group, setGroup] = useState(remote.group);
 
   if (!open) return null;
 
@@ -27,7 +27,7 @@ export default function EditServerDialog({ open, onClose, server }: EditServerDi
     e.preventDefault();
     setSubmitting(true);
     try {
-      await update(server.id, {
+      await update(remote.id, {
         name: name.trim(),
         host: host.trim(),
         user: user.trim(),
@@ -56,7 +56,7 @@ export default function EditServerDialog({ open, onClose, server }: EditServerDi
       />
       <div className="relative bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-white">Edit Server</h2>
+          <h2 className="text-lg font-semibold text-white">Edit Remote</h2>
           <button
             onClick={onClose}
             className="text-zinc-400 hover:text-white transition-colors"
@@ -74,7 +74,7 @@ export default function EditServerDialog({ open, onClose, server }: EditServerDi
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="my-server"
+              placeholder="my-remote"
               className={inputClass}
             />
           </div>

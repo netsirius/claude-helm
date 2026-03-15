@@ -6,6 +6,7 @@ use chrono::Utc;
 #[serde(rename_all = "camelCase")]
 pub struct RemoteConfig {
     pub schema_version: u32,
+    #[serde(alias = "servers")]
     pub remotes: Vec<Remote>,
 }
 

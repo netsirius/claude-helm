@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { X } from "lucide-react";
-import { useServerStore } from "../../stores/serverStore";
+import { useRemoteStore } from "../../stores/remoteStore";
 
-interface AddServerDialogProps {
+interface AddRemoteDialogProps {
   open: boolean;
   onClose: () => void;
 }
 
-export default function AddServerDialog({ open, onClose }: AddServerDialogProps) {
-  const add = useServerStore((s) => s.add);
+export default function AddRemoteDialog({ open, onClose }: AddRemoteDialogProps) {
+  const add = useRemoteStore((s) => s.add);
   const [submitting, setSubmitting] = useState(false);
 
   const [name, setName] = useState("");
@@ -65,7 +65,7 @@ export default function AddServerDialog({ open, onClose }: AddServerDialogProps)
       />
       <div className="relative bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-white">Add Server</h2>
+          <h2 className="text-lg font-semibold text-white">Add Remote</h2>
           <button
             onClick={resetAndClose}
             className="text-zinc-400 hover:text-white transition-colors"
@@ -83,7 +83,7 @@ export default function AddServerDialog({ open, onClose }: AddServerDialogProps)
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="my-server"
+              placeholder="my-remote"
               className={inputClass}
             />
           </div>
@@ -175,7 +175,7 @@ export default function AddServerDialog({ open, onClose }: AddServerDialogProps)
               disabled={submitting || !name.trim() || !host.trim()}
               className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50"
             >
-              {submitting ? "Adding..." : "Add Server"}
+              {submitting ? "Adding..." : "Add Remote"}
             </button>
           </div>
         </form>

@@ -28,7 +28,7 @@ impl AppState {
     pub fn new() -> Self {
         let store = ConfigStore::new().expect("Failed to initialise config store");
 
-        let remote_config: RemoteConfig = store.load_with_fallback("remotes.json", "servers.json");
+        let remote_config: RemoteConfig = store.load_with_fallbacks("remotes.json", &["servers.json", "vps.json"]);
         let agents_config: AgentsConfig = store.load("agents.json");
         let pipelines_config: PipelinesConfig = store.load("pipelines.json");
 

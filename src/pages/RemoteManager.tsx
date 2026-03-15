@@ -1,55 +1,55 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, RefreshCw, Search, Server } from "lucide-react";
-import { useServerStore } from "../stores/serverStore";
-import type { Server as ServerType } from "../stores/serverStore";
-import ServerCard from "../components/server/ServerCard";
-import AddServerDialog from "../components/server/AddServerDialog";
-import EditServerDialog from "../components/server/EditServerDialog";
+import { useRemoteStore } from "../stores/remoteStore";
+import type { Remote } from "../stores/remoteStore";
+import RemoteCard from "../components/remote/RemoteCard";
+import AddRemoteDialog from "../components/remote/AddRemoteDialog";
+import EditRemoteDialog from "../components/remote/EditRemoteDialog";
 
-export default function ServerManager() {
-  const { servers, loading, fetch } = useServerStore();
+export default function RemoteManager() {
+  const { remotes, loading, fetch } = useRemoteStore();
   const [filter, setFilter] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingServer, setEditingServer] = useState<ServerType | null>(null);
+  const [editingRemote, setEditingRemote] = useState<Remote | null>(null);
 
   useEffect(() => {
     fetch();
   }, [fetch]);
 
   const filtered = useMemo(() => {
-    if (!filter.trim()) return servers;
+    if (!filter.trim()) return remotes;
     const q = filter.toLowerCase();
-    return servers.filter(
+    return remotes.filter(
       (s) =>
         s.name.toLowerCase().includes(q) ||
         s.host.toLowerCase().includes(q) ||
         s.group.toLowerCase().includes(q) ||
         s.tags.some((t) => t.toLowerCase().includes(q)),
     );
-  }, [servers, filter]);
+  }, [remotes, filter]);
 
   const grouped = useMemo(() => {
     const groups: Record<string, typeof filtered> = {};
     const ungrouped: typeof filtered = [];
 
-    for (const server of filtered) {
-      if (server.group) {
-        if (!groups[server.group]) groups[server.group] = [];
-        groups[server.group].push(server);
+    for (const remote of filtered) {
+      if (remote.group) {
+        if (!groups[remote.group]) groups[remote.group] = [];
+        groups[remote.group].push(remote);
       } else {
-        ungrouped.push(server);
+        ungrouped.push(remote);
       }
     }
 
     return { ungrouped, groups };
   }, [filtered]);
 
-  const isEmpty = servers.length === 0 && !loading;
+  const isEmpty = remotes.length === 0 && !loading;
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Server Manager</h1>
+        <h1 className="text-2xl font-bold text-white">Remote Manager</h1>
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search
@@ -59,7 +59,7 @@ export default function ServerManager() {
             <input
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              placeholder="Filter servers..."
+              placeholder="Filter remotes..."
               className="pl-9 pr-3 py-2 text-sm bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent w-56"
             />
           </div>
@@ -76,7 +76,7 @@ export default function ServerManager() {
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
           >
             <Plus size={16} />
-            Add Server
+            Add Remote
           </button>
         </div>
       </div>
@@ -87,37 +87,37 @@ export default function ServerManager() {
             <Server size={32} className="text-zinc-500" />
           </div>
           <h2 className="text-lg font-semibold text-white mb-1">
-            Add your first server
+            Add your first remote
           </h2>
           <p className="text-sm text-zinc-400 mb-4">
-            Connect a remote server to start managing Claude sessions.
+            Connect a remote machine to start managing Claude sessions.
           </p>
           <button
             onClick={() => setDialogOpen(true)}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
           >
             <Plus size={16} />
-            Add Server
+            Add Remote
           </button>
         </div>
       ) : (
         <div className="space-y-8">
           {grouped.ungrouped.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {grouped.ungrouped.map((server) => (
-                <ServerCard key={server.id} server={server} onEdit={setEditingServer} />
+              {grouped.ungrouped.map((remote) => (
+                <RemoteCard key={remote.id} remote={remote} onEdit={setEditingRemote} />
               ))}
             </div>
           )}
 
-          {Object.entries(grouped.groups).map(([groupName, serverItems]) => (
+          {Object.entries(grouped.groups).map(([groupName, remoteItems]) => (
             <div key={groupName}>
               <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">
                 {groupName}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {serverItems.map((server) => (
-                  <ServerCard key={server.id} server={server} onEdit={setEditingServer} />
+                {remoteItems.map((remote) => (
+                  <RemoteCard key={remote.id} remote={remote} onEdit={setEditingRemote} />
                 ))}
               </div>
             </div>
@@ -125,12 +125,12 @@ export default function ServerManager() {
         </div>
       )}
 
-      <AddServerDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
-      {editingServer && (
-        <EditServerDialog
+      <AddRemoteDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
+      {editingRemote && (
+        <EditRemoteDialog
           open={true}
-          onClose={() => setEditingServer(null)}
-          server={editingServer}
+          onClose={() => setEditingRemote(null)}
+          remote={editingRemote}
         />
       )}
     </div>

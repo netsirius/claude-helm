@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { useAgentStore } from "../../stores/agentStore";
-import type { Server } from "../../stores/serverStore";
+import type { Remote } from "../../stores/remoteStore";
 
 interface CreateAgentDialogProps {
   open: boolean;
   onClose: () => void;
-  serverList: Server[];
+  remoteList: Remote[];
 }
 
 const ICONS = [
@@ -40,7 +40,7 @@ const MODELS = [
 export default function CreateAgentDialog({
   open,
   onClose,
-  serverList,
+  remoteList,
 }: CreateAgentDialogProps) {
   const add = useAgentStore((s) => s.add);
   const [submitting, setSubmitting] = useState(false);
@@ -50,7 +50,7 @@ export default function CreateAgentDialog({
   const [icon, setIcon] = useState(ICONS[0]);
   const [color, setColor] = useState(COLORS[0]);
   const [model, setModel] = useState(MODELS[0].value);
-  const [serverId, setServerId] = useState("");
+  const [remoteId, setRemoteId] = useState("");
 
   if (!open) return null;
 
@@ -62,7 +62,7 @@ export default function CreateAgentDialog({
         icon,
         color,
         defaultModel: model,
-        assignedServerId: serverId || undefined,
+        assignedRemoteId: remoteId || undefined,
       });
       resetAndClose();
     } finally {
@@ -76,7 +76,7 @@ export default function CreateAgentDialog({
     setIcon(ICONS[0]);
     setColor(COLORS[0]);
     setModel(MODELS[0].value);
-    setServerId("");
+    setRemoteId("");
     onClose();
   };
 
@@ -190,18 +190,18 @@ export default function CreateAgentDialog({
             </select>
           </div>
 
-          {/* Server selector */}
+          {/* Remote selector */}
           <div>
             <label className="block text-xs font-medium text-zinc-400 mb-1">
-              Server
+              Remote
             </label>
             <select
-              value={serverId}
-              onChange={(e) => setServerId(e.target.value)}
+              value={remoteId}
+              onChange={(e) => setRemoteId(e.target.value)}
               className={inputClass}
             >
               <option value="">None (assign later)</option>
-              {serverList.map((v) => (
+              {remoteList.map((v) => (
                 <option key={v.id} value={v.id}>
                   {v.name} ({v.host})
                 </option>

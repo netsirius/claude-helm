@@ -20,9 +20,11 @@ pub struct Agent {
     pub default_model: String,
     pub default_dir: String,
     pub claude_md: String,
+    #[serde(alias = "assignedServerId")]
     pub assigned_remote_id: Option<String>,
     pub tags: Vec<String>,
     pub current_session_id: Option<String>,
+    #[serde(alias = "currentServerId")]
     pub current_remote_id: Option<String>,
     pub created_at: String,
 }

@@ -30,7 +30,7 @@ export default function ActivityLog() {
             No activity yet
           </h2>
           <p className="text-sm text-zinc-400">
-            Commands executed on your servers will appear here.
+            Commands executed on your remotes will appear here.
           </p>
         </div>
       ) : (
@@ -44,7 +44,7 @@ export default function ActivityLog() {
                 {new Date(entry.timestamp).toLocaleString()}
               </span>
               <span className="text-sm text-zinc-300 min-w-[100px]">
-                {entry.serverName}
+                {entry.remoteName}
               </span>
               <span className="text-sm text-zinc-200 font-mono flex-1 truncate">
                 {entry.command}
