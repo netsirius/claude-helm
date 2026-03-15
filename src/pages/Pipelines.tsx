@@ -107,8 +107,12 @@ export default function Pipelines() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this pipeline?")) return;
-    await remove(id);
+    // window.confirm may not work reliably in Tauri webview
+    try {
+      await remove(id);
+    } catch (e) {
+      alert(`Failed to delete pipeline: ${e}`);
+    }
   };
 
   const handleExecute = async (pipelineId: string) => {

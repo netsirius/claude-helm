@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Play, Square, Copy, Trash2, Loader2 } from "lucide-react";
+import { Play, Square, Copy, Trash2, Loader2, FolderOpen } from "lucide-react";
 import type { Agent } from "../../stores/agentStore";
 import type { Remote } from "../../stores/remoteStore";
 
@@ -7,6 +7,7 @@ interface AgentCardProps {
   agent: Agent;
   remote: Remote | undefined;
   onStart: (agent: Agent) => Promise<void>;
+  onStartWithBrowse?: (agent: Agent) => void;
   onStop: (agent: Agent) => Promise<void>;
   onOpen: (agent: Agent, remote: Remote) => void;
   onDelete: (agent: Agent) => Promise<void>;
@@ -44,6 +45,7 @@ export default function AgentCard({
   agent,
   remote,
   onStart,
+  onStartWithBrowse,
   onStop,
   onOpen,
   onDelete,
@@ -111,18 +113,30 @@ export default function AgentCard({
       {/* Actions */}
       <div className="flex items-center gap-2 mt-auto pt-2 border-t border-zinc-800">
         {isIdle && (
-          <button
-            onClick={() => handleAction("start", () => onStart(agent))}
-            disabled={actionLoading !== null}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors disabled:opacity-50"
-          >
-            {actionLoading === "start" ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Play size={14} />
+          <>
+            <button
+              onClick={() => handleAction("start", () => onStart(agent))}
+              disabled={actionLoading !== null}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors disabled:opacity-50"
+            >
+              {actionLoading === "start" ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Play size={14} />
+              )}
+              Start
+            </button>
+            {onStartWithBrowse && (
+              <button
+                onClick={() => onStartWithBrowse(agent)}
+                disabled={actionLoading !== null}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors disabled:opacity-50"
+                title="Choose working directory before starting"
+              >
+                <FolderOpen size={14} />
+              </button>
             )}
-            Start
-          </button>
+          </>
         )}
 
         {isRunning && (

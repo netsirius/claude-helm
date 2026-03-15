@@ -25,14 +25,35 @@ export default function Agents() {
 
   const remoteMap = new Map(remotes.map((v) => [v.id, v]));
 
-  const handleStart = async (agent: Agent) => {
+  const startAgent = async (agent: Agent, workingDir: string) => {
     const remoteId = agent.assignedRemoteId;
     if (!remoteId) {
       alert("Assign a remote to this agent before starting a session.");
       return;
     }
 
-    // Open file browser for directory selection
+    const model = agent.defaultModel || undefined;
+
+    try {
+      await tauriInvoke("probe_remote", { id: remoteId });
+      await tauriInvoke<string>("create_session", {
+        remoteId,
+        agentId: agent.id,
+        workingDir,
+        model,
+      });
+      await fetchAgents();
+    } catch (e) {
+      alert(`Failed to start agent: ${e}`);
+    }
+  };
+
+  const handleStart = async (agent: Agent) => {
+    // Start directly with defaultDir or ~ (home directory)
+    await startAgent(agent, agent.defaultDir || "~");
+  };
+
+  const handleStartWithBrowse = (agent: Agent) => {
     setPendingStartAgent(agent);
     setFileBrowserOpen(true);
   };
@@ -42,30 +63,10 @@ export default function Agents() {
       setFileBrowserOpen(false);
       const agent = pendingStartAgent;
       setPendingStartAgent(null);
-
       if (!agent) return;
-
-      const remoteId = agent.assignedRemoteId;
-      if (!remoteId) return;
-
-      const model = agent.defaultModel || undefined;
-
-      try {
-        // Ensure remote has been probed (needed to find claude binary path)
-        await tauriInvoke("probe_remote", { id: remoteId });
-
-        await tauriInvoke<string>("create_session", {
-          remoteId,
-          agentId: agent.id,
-          workingDir: path,
-          model,
-        });
-        await fetchAgents();
-      } catch (e) {
-        alert(`Failed to start agent: ${e}`);
-      }
+      await startAgent(agent, path);
     },
-    [pendingStartAgent, fetchAgents],
+    [pendingStartAgent],
   );
 
   const handleStop = async (agent: Agent) => {
@@ -162,6 +163,7 @@ export default function Agents() {
                 remoteMap.get(agent.assignedRemoteId ?? "")
               }
               onStart={handleStart}
+              onStartWithBrowse={handleStartWithBrowse}
               onStop={handleStop}
               onOpen={handleOpen}
               onDelete={handleDelete}
