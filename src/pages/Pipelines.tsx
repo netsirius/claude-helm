@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Plus, RefreshCw, GitBranch, Trash2, ChevronUp } from "lucide-react";
+import { Plus, RefreshCw, GitBranch, Trash2, ChevronUp, Pencil } from "lucide-react";
 import { usePipelineStore, type Pipeline } from "../stores/pipelineStore";
 import { useAgentStore } from "../stores/agentStore";
+import PipelineEditorModal from "../components/pipeline/PipelineEditorModal";
 
 export default function Pipelines() {
   const { pipelines, loading, fetch: fetchPipelines, create, remove } = usePipelineStore();
@@ -9,6 +10,7 @@ export default function Pipelines() {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [editingPipelineId, setEditingPipelineId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPipelines();
@@ -141,13 +143,22 @@ export default function Pipelines() {
                     <p className="text-sm text-zinc-400">{pipeline.description}</p>
                   )}
                 </div>
-                <button
-                  onClick={() => handleDelete(pipeline.id)}
-                  className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors"
-                  title="Delete pipeline"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setEditingPipelineId(pipeline.id)}
+                    className="p-2 rounded-lg text-zinc-500 hover:text-indigo-400 hover:bg-zinc-800 transition-colors"
+                    title="Edit pipeline"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(pipeline.id)}
+                    className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors"
+                    title="Delete pipeline"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
 
               {/* Step visualization */}
@@ -189,6 +200,19 @@ export default function Pipelines() {
           ))}
         </div>
       )}
+
+      {/* Pipeline Editor Modal */}
+      {editingPipelineId && (() => {
+        const editingPipeline = pipelines.find((p) => p.id === editingPipelineId);
+        if (!editingPipeline) return null;
+        return (
+          <PipelineEditorModal
+            pipeline={editingPipeline}
+            agents={agents}
+            onClose={() => setEditingPipelineId(null)}
+          />
+        );
+      })()}
     </div>
   );
 }
