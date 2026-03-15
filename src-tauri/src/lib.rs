@@ -3,11 +3,14 @@ mod config;
 mod ssh;
 mod state;
 
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
 use tauri::Manager;
+use tokio::sync::Mutex;
 
+use crate::config::pipelines::{cron_matches_now, current_minute_key, PipelineStatus};
 use crate::ssh::connection::SshPool;
 use state::AppState;
 
@@ -27,6 +30,78 @@ pub fn run() {
                 loop {
                     tokio::time::sleep(Duration::from_secs(30)).await;
                     ssh_pool.cleanup_idle().await;
+                }
+            });
+
+            // Spawn cron scheduler — checks every 60 seconds for scheduled pipelines
+            let cron_pipelines_config = {
+                let state: tauri::State<AppState> = app.state();
+                Arc::clone(&state.pipelines_config)
+            };
+            let cron_app_handle = app.handle().clone();
+
+            tauri::async_runtime::spawn(async move {
+                // Track which pipelines have already been triggered this minute
+                let last_triggered: Mutex<HashMap<String, String>> =
+                    Mutex::new(HashMap::new());
+
+                loop {
+                    tokio::time::sleep(Duration::from_secs(60)).await;
+
+                    let now_key = current_minute_key();
+
+                    // Collect pipelines that need triggering
+                    let to_trigger: Vec<String> = {
+                        let config = cron_pipelines_config.lock().await;
+                        let mut triggered = last_triggered.lock().await;
+
+                        // Clean up stale entries (from previous minutes)
+                        triggered.retain(|_, v| v == &now_key);
+
+                        let ids: Vec<String> = config
+                            .pipelines
+                            .iter()
+                            .filter(|p| {
+                                p.schedule_enabled
+                                    && p.status != PipelineStatus::Running
+                                    && !p.steps.is_empty()
+                            })
+                            .filter(|p| {
+                                p.schedule
+                                    .as_ref()
+                                    .map(|expr| cron_matches_now(expr))
+                                    .unwrap_or(false)
+                            })
+                            .filter(|p| {
+                                // Skip if already triggered this minute
+                                triggered.get(&p.id) != Some(&now_key)
+                            })
+                            .map(|p| p.id.clone())
+                            .collect();
+
+                        // Mark them as triggered
+                        for id in &ids {
+                            triggered.insert(id.clone(), now_key.clone());
+                        }
+
+                        ids
+                    };
+
+                    // Trigger each matching pipeline via the execute_pipeline command
+                    for pipeline_id in to_trigger {
+                        let state: tauri::State<AppState> = cron_app_handle.state();
+                        let result = commands::pipeline_commands::execute_pipeline(
+                            state,
+                            pipeline_id.clone(),
+                        )
+                        .await;
+                        if let Err(e) = result {
+                            eprintln!(
+                                "[cron] Failed to execute scheduled pipeline {}: {}",
+                                pipeline_id, e
+                            );
+                        }
+                    }
                 }
             });
 
@@ -64,6 +139,7 @@ pub fn run() {
             commands::pipeline_commands::execute_pipeline,
             commands::pipeline_commands::get_pipeline_status,
             commands::pipeline_commands::cancel_pipeline,
+            commands::pipeline_commands::set_pipeline_schedule,
             commands::remote_admin_commands::list_remote_skills,
             commands::remote_admin_commands::list_remote_plugins,
             commands::remote_admin_commands::install_plugin_on_remote,

@@ -30,6 +30,7 @@ interface AgentState {
       color?: string;
       defaultModel?: string;
       assignedRemoteId?: string;
+      claudeMd?: string;
     },
   ) => Promise<void>;
   remove: (id: string) => Promise<void>;
@@ -61,6 +62,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
         color: opts?.color,
         defaultModel: opts?.defaultModel,
         assignedRemoteId: opts?.assignedRemoteId,
+        claudeMd: opts?.claudeMd,
       });
       await get().fetch();
     } catch (e) {

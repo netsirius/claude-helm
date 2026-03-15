@@ -944,10 +944,89 @@ server.tool(
   },
 );
 
-// ── Start server ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────
+// 12. cm_schedule_pipeline — Set a cron schedule for a pipeline
+// ─────────────────────────────────────────────────────────────────────
+server.tool(
+  "cm_schedule_pipeline",
+  "Set a cron schedule for a pipeline. Use standard 5-field cron syntax (minute hour day month weekday). Examples: '0 9 * * *' for daily at 9am, '*/30 * * * *' for every 30 min, '0 9 * * 1-5' for weekdays at 9am. Pass schedule=null to remove the schedule.",
+  {
+    pipelineId: z.string().describe("UUID of the pipeline to schedule"),
+    schedule: z
+      .string()
+      .nullable()
+      .optional()
+      .describe(
+        "Cron expression (5 fields: min hour day month weekday), or null to remove",
+      ),
+    enabled: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe("Whether the schedule is active (default true)"),
+  },
+  {
+    readOnlyHint: false,
+    destructiveHint: false,
+  },
+  async ({ pipelineId, schedule, enabled }) => {
+    const pipelinesCfg = loadConfig<PipelinesConfig>("pipelines.json");
+    const pipeline = pipelinesCfg.pipelines?.find((p) => p.id === pipelineId);
+    if (!pipeline) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Error: pipeline ${pipelineId} not found`,
+          },
+        ],
+        isError: true,
+      };
+    }
+
+    // Validate cron expression
+    if (schedule) {
+      const parts = schedule.trim().split(/\s+/);
+      if (parts.length !== 5) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error: invalid cron expression '${schedule}'. Expected 5 fields (minute hour day month weekday).`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+
+    pipeline.schedule = schedule ?? null;
+    pipeline.scheduleEnabled = schedule ? (enabled ?? true) : false;
+
+    saveConfig("pipelines.json", pipelinesCfg);
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              pipelineId,
+              pipelineName: pipeline.name,
+              schedule: pipeline.schedule,
+              scheduleEnabled: pipeline.scheduleEnabled,
+            },
+            null,
+            2,
+          ),
+        },
+      ],
+    };
+  },
+);
 
 // ─────────────────────────────────────────────────────────────────────
-// 12. cm_send_prompt — Send a prompt/command to a running agent
+// 13. cm_send_prompt -- Send a prompt/command to a running agent
 // ─────────────────────────────────────────────────────────────────────
 server.tool(
   "cm_send_prompt",

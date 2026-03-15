@@ -669,6 +669,90 @@ pub async fn execute_pipeline(
     Ok(())
 }
 
+// ─── Schedule management ─────────────────────────────────────────────────────
+
+/// Set or update the cron schedule for a pipeline.
+///
+/// - `schedule`: a 5-field cron expression (e.g. "0 9 * * *"), or null to remove.
+/// - `enabled`: whether the schedule is active (default: preserves current value).
+///
+/// Validates the cron expression format before persisting.
+#[tauri::command]
+pub async fn set_pipeline_schedule(
+    state: State<'_, AppState>,
+    pipeline_id: String,
+    schedule: Option<String>,
+    enabled: Option<bool>,
+) -> Result<(), String> {
+    // Validate cron expression if provided
+    if let Some(ref expr) = schedule {
+        let parts: Vec<&str> = expr.split_whitespace().collect();
+        if parts.len() != 5 {
+            return Err(format!(
+                "Invalid cron expression '{}': expected 5 fields (minute hour day month weekday)",
+                expr
+            ));
+        }
+        // Basic validation of each field
+        for (i, part) in parts.iter().enumerate() {
+            let field_name = ["minute", "hour", "day", "month", "weekday"][i];
+            for segment in part.split(',') {
+                let segment = segment.trim();
+                if segment == "*" {
+                    continue;
+                }
+                if let Some(n_str) = segment.strip_prefix("*/") {
+                    if n_str.parse::<u32>().is_err() {
+                        return Err(format!(
+                            "Invalid cron field '{}' in {}: '{}' is not a number",
+                            part, field_name, n_str
+                        ));
+                    }
+                    continue;
+                }
+                if let Some((start, end)) = segment.split_once('-') {
+                    if start.parse::<u32>().is_err() || end.parse::<u32>().is_err() {
+                        return Err(format!(
+                            "Invalid cron range '{}' in {}",
+                            segment, field_name
+                        ));
+                    }
+                    continue;
+                }
+                if segment.parse::<u32>().is_err() {
+                    return Err(format!(
+                        "Invalid cron value '{}' in {}",
+                        segment, field_name
+                    ));
+                }
+            }
+        }
+    }
+
+    let data = {
+        let mut config = state.pipelines_config.lock().await;
+        let pipeline = config
+            .get_mut(&pipeline_id)
+            .ok_or_else(|| format!("Pipeline '{}' not found", pipeline_id))?;
+
+        pipeline.schedule = schedule;
+        if let Some(en) = enabled {
+            pipeline.schedule_enabled = en;
+        }
+        // If schedule was removed, disable it
+        if pipeline.schedule.is_none() {
+            pipeline.schedule_enabled = false;
+        }
+
+        config.clone()
+    };
+
+    let store = state.config.lock().await;
+    store
+        .save("pipelines.json", &data)
+        .map_err(|e| format!("Failed to save pipelines config: {}", e))
+}
+
 /// Helper: mark a single step as failed and persist.
 async fn mark_step_failed(
     pipelines_config: &Arc<Mutex<crate::config::pipelines::PipelinesConfig>>,

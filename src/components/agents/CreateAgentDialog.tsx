@@ -37,6 +37,37 @@ const MODELS = [
   { value: "claude-haiku-4-20250514", label: "Haiku" },
 ];
 
+const PROMPT_TEMPLATES = [
+  {
+    label: "Auto-decide",
+    prompt: "You are fully autonomous. Never wait for human input. When presented with choices, select the most reasonable option and proceed. When asked for confirmation, confirm and continue. When a plan is ready, execute it immediately. Complete all tasks end-to-end without stopping.",
+  },
+  {
+    label: "Autonomous Worker",
+    prompt: "You are an autonomous agent. Never ask for confirmation — execute tasks immediately. When given a plan, choose option 1 and proceed. Auto-accept all prompts. Be decisive and complete tasks end-to-end without human interaction.",
+  },
+  {
+    label: "Code Developer",
+    prompt: "You are a senior software developer. Write clean, tested code. Follow existing patterns in the codebase. Run tests after changes. Commit with clear messages. Never ask for confirmation — just implement.",
+  },
+  {
+    label: "DevOps / Deploy",
+    prompt: "You are a DevOps engineer. Handle deployments, infrastructure, CI/CD pipelines. Be cautious with destructive operations but proceed autonomously. Log all actions clearly.",
+  },
+  {
+    label: "Code Reviewer",
+    prompt: "You are a code reviewer. Analyze code for bugs, security issues, performance problems, and style. Provide actionable feedback. Fix issues directly when possible.",
+  },
+  {
+    label: "Research & Analysis",
+    prompt: "You are a research analyst. Explore codebases, documentation, and APIs. Summarize findings clearly. Produce detailed reports. Never ask for direction — investigate thoroughly on your own.",
+  },
+  {
+    label: "Custom",
+    prompt: "",
+  },
+];
+
 export default function CreateAgentDialog({
   open,
   onClose,
@@ -51,6 +82,8 @@ export default function CreateAgentDialog({
   const [color, setColor] = useState(COLORS[0]);
   const [model, setModel] = useState(MODELS[0].value);
   const [remoteId, setRemoteId] = useState("");
+  const [systemPrompt, setSystemPrompt] = useState(PROMPT_TEMPLATES[0].prompt);
+  const [selectedTemplate, setSelectedTemplate] = useState(0);
 
   if (!open) return null;
 
@@ -63,6 +96,7 @@ export default function CreateAgentDialog({
         color,
         defaultModel: model,
         assignedRemoteId: remoteId || undefined,
+        claudeMd: systemPrompt.trim() || undefined,
       });
       resetAndClose();
     } finally {
@@ -77,6 +111,8 @@ export default function CreateAgentDialog({
     setColor(COLORS[0]);
     setModel(MODELS[0].value);
     setRemoteId("");
+    setSystemPrompt(PROMPT_TEMPLATES[0].prompt);
+    setSelectedTemplate(0);
     onClose();
   };
 
@@ -207,6 +243,45 @@ export default function CreateAgentDialog({
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* System Prompt (behavior template) */}
+          <div>
+            <label className="block text-xs font-medium text-[#b0aea5] mb-2">
+              Behavior
+            </label>
+            <div className="flex gap-1.5 flex-wrap mb-2">
+              {PROMPT_TEMPLATES.map((t, i) => (
+                <button
+                  key={t.label}
+                  type="button"
+                  onClick={() => {
+                    setSelectedTemplate(i);
+                    setSystemPrompt(t.prompt);
+                  }}
+                  className={`px-2.5 py-1 text-[11px] rounded-lg transition-colors ${
+                    selectedTemplate === i
+                      ? "bg-[#d97757]/20 text-[#d97757] ring-1 ring-[#d97757]"
+                      : "bg-[#2a2a28] text-[#b0aea5] hover:bg-[#3a3a37]"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={systemPrompt}
+              onChange={(e) => {
+                setSystemPrompt(e.target.value);
+                setSelectedTemplate(PROMPT_TEMPLATES.length - 1); // switch to Custom
+              }}
+              rows={3}
+              placeholder="System prompt for this agent — defines how it behaves when running autonomously..."
+              className={`${inputClass} resize-none`}
+            />
+            <p className="text-[10px] text-[#b0aea5]/60 mt-1">
+              Agents run with --permission-mode auto. The system prompt guides autonomous behavior.
+            </p>
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

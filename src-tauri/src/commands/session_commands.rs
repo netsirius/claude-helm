@@ -61,14 +61,21 @@ pub async fn create_session(
             .ok_or_else(|| format!("Claude CLI not found on remote '{}'", remote_id))?
     };
 
-    // Get agent name for session title
-    let agent_name = {
+    // Get agent info for session configuration
+    let (agent_name, agent_system_prompt) = {
         let agents = state.agents_config.lock().await;
-        agents.get(&agent_id).map(|a| a.name.clone()).unwrap_or_default()
+        match agents.get(&agent_id) {
+            Some(a) => (a.name.clone(), a.claude_md.clone()),
+            None => (String::new(), String::new()),
+        }
     };
 
-    // Build the claude command with optional model and session name
+    // Build the claude command with all flags
     let mut cmd_parts = vec![claude_path.clone()];
+
+    // Auto-accept all permission prompts for unattended sessions
+    cmd_parts.push("--permission-mode auto".to_string());
+
     if let Some(ref m) = model {
         let model_re = regex_lite::Regex::new(r"^[a-zA-Z0-9_\-\.]+$").unwrap();
         if !model_re.is_match(m) {
@@ -80,9 +87,16 @@ pub async fn create_session(
         cmd_parts.push(format!("--model {}", m));
     }
     if !agent_name.is_empty() {
-        // Sanitize agent name for shell (remove quotes)
         let safe_name = agent_name.replace('\'', "").replace('"', "");
         cmd_parts.push(format!("--name \"{}\"", safe_name));
+    }
+    // Inject agent system prompt if configured
+    if !agent_system_prompt.is_empty() {
+        let safe_prompt = agent_system_prompt
+            .replace('\\', "\\\\")
+            .replace('"', "\\\"")
+            .replace('\n', "\\n");
+        cmd_parts.push(format!("--system-prompt \"{}\"", safe_prompt));
     }
     let claude_cmd = cmd_parts.join(" ");
 

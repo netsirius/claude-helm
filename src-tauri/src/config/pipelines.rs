@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use chrono::Utc;
+use chrono::{Datelike, Timelike, Utc};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -19,6 +19,10 @@ pub struct Pipeline {
     pub status: PipelineStatus,
     pub created_at: String,
     pub last_run_at: Option<String>,
+    #[serde(default)]
+    pub schedule: Option<String>,
+    #[serde(default)]
+    pub schedule_enabled: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -96,8 +100,70 @@ impl Pipeline {
             status: PipelineStatus::Idle,
             created_at: Utc::now().to_rfc3339(),
             last_run_at: None,
+            schedule: None,
+            schedule_enabled: false,
         }
     }
+}
+
+// ── Cron matching ────────────────────────────────────────────────────────
+
+/// Check if a cron expression matches the current local time.
+///
+/// Supports standard 5-field cron syntax: `minute hour day_of_month month day_of_week`
+///
+/// Field values:
+/// - `*` matches any value
+/// - `N` matches exact value
+/// - `*/N` matches every N (when value % N == 0)
+/// - `N,M,O` matches any listed value
+/// - `N-M` matches range (inclusive)
+pub fn cron_matches_now(expr: &str) -> bool {
+    let now = chrono::Local::now();
+    let parts: Vec<&str> = expr.split_whitespace().collect();
+    if parts.len() != 5 {
+        return false;
+    }
+
+    fn matches(field: &str, value: u32) -> bool {
+        if field == "*" {
+            return true;
+        }
+        // Handle comma-separated values/ranges: "1,3,5" or "1-5,9"
+        field.split(',').any(|part| {
+            let part = part.trim();
+            // Handle */N (every N)
+            if let Some(n_str) = part.strip_prefix("*/") {
+                if let Ok(n) = n_str.parse::<u32>() {
+                    return n > 0 && value % n == 0;
+                }
+                return false;
+            }
+            // Handle N-M (range)
+            if let Some((start_str, end_str)) = part.split_once('-') {
+                if let (Ok(start), Ok(end)) = (start_str.parse::<u32>(), end_str.parse::<u32>()) {
+                    return value >= start && value <= end;
+                }
+                return false;
+            }
+            // Handle exact value
+            part.parse::<u32>().ok() == Some(value)
+        })
+    }
+
+    matches(parts[0], now.minute())
+        && matches(parts[1], now.hour())
+        && matches(parts[2], now.day())
+        && matches(parts[3], now.month())
+        && matches(
+            parts[4],
+            now.weekday().num_days_from_sunday(),
+        )
+}
+
+/// Format a minute key for dedup: "YYYY-MM-DD HH:MM"
+pub fn current_minute_key() -> String {
+    chrono::Local::now().format("%Y-%m-%d %H:%M").to_string()
 }
 
 impl PipelineStep {
@@ -172,6 +238,58 @@ mod tests {
         assert_eq!(pipeline.steps[0].timeout, 300);
         assert_eq!(pipeline.steps[1].status, StepStatus::Pending);
         assert_eq!(pipeline.steps[1].depends_on.len(), 1);
+    }
+
+    #[test]
+    fn test_pipeline_schedule_defaults() {
+        let pipeline = Pipeline::new("sched".to_string(), "test".to_string());
+        assert!(pipeline.schedule.is_none());
+        assert!(!pipeline.schedule_enabled);
+    }
+
+    #[test]
+    fn test_pipeline_schedule_serialization() {
+        let mut pipeline = Pipeline::new("sched".to_string(), "test".to_string());
+        pipeline.schedule = Some("0 9 * * *".to_string());
+        pipeline.schedule_enabled = true;
+
+        let json = serde_json::to_string(&pipeline).unwrap();
+        assert!(json.contains("schedule"));
+        assert!(json.contains("scheduleEnabled"));
+
+        let deser: Pipeline = serde_json::from_str(&json).unwrap();
+        assert_eq!(deser.schedule, Some("0 9 * * *".to_string()));
+        assert!(deser.schedule_enabled);
+    }
+
+    #[test]
+    fn test_pipeline_schedule_backward_compat() {
+        // Old JSON without schedule fields should deserialize fine
+        let json = r#"{
+            "id": "test-id",
+            "name": "old-pipe",
+            "description": "no schedule",
+            "steps": [],
+            "status": "idle",
+            "createdAt": "2025-01-01T00:00:00Z",
+            "lastRunAt": null
+        }"#;
+        let deser: Pipeline = serde_json::from_str(json).unwrap();
+        assert!(deser.schedule.is_none());
+        assert!(!deser.schedule_enabled);
+    }
+
+    #[test]
+    fn test_cron_matches_field_star() {
+        // A wildcard-only expression always matches
+        assert!(cron_matches_now("* * * * *"));
+    }
+
+    #[test]
+    fn test_cron_invalid() {
+        assert!(!cron_matches_now("bad expression"));
+        assert!(!cron_matches_now("0 9 *"));
+        assert!(!cron_matches_now(""));
     }
 
     #[test]

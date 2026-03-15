@@ -20,6 +20,8 @@ export interface Pipeline {
   status: "idle" | "running" | "completed" | "failed";
   createdAt: string;
   lastRunAt: string | null;
+  schedule: string | null;
+  scheduleEnabled: boolean;
 }
 
 interface PipelineState {
@@ -42,6 +44,11 @@ interface PipelineState {
   ) => Promise<void>;
   removeStep: (pipelineId: string, stepId: string) => Promise<void>;
   remove: (id: string) => Promise<void>;
+  setSchedule: (
+    pipelineId: string,
+    schedule: string | null,
+    enabled: boolean,
+  ) => Promise<void>;
 }
 
 export const usePipelineStore = create<PipelineState>((set, get) => ({
@@ -126,6 +133,21 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       set({ error: `Failed to remove pipeline: ${message}` });
+    }
+  },
+
+  setSchedule: async (pipelineId, schedule, enabled) => {
+    set({ error: null });
+    try {
+      await tauriInvoke("set_pipeline_schedule", {
+        pipelineId,
+        schedule,
+        enabled,
+      });
+      await get().fetch();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      set({ error: `Failed to set schedule: ${message}` });
     }
   },
 }));

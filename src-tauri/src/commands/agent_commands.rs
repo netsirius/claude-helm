@@ -20,6 +20,7 @@ pub async fn add_agent(
     color: Option<String>,
     default_model: Option<String>,
     assigned_remote_id: Option<String>,
+    claude_md: Option<String>,
 ) -> Result<Agent, String> {
     let mut agent = Agent::new(name, role);
 
@@ -34,6 +35,9 @@ pub async fn add_agent(
     }
     if let Some(v) = assigned_remote_id {
         agent.assigned_remote_id = Some(v);
+    }
+    if let Some(p) = claude_md {
+        agent.claude_md = p;
     }
 
     let result = agent.clone();

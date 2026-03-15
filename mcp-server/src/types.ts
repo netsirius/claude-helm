@@ -70,6 +70,8 @@ export interface Pipeline {
   status: "idle" | "running" | "completed" | "failed";
   createdAt: string;
   lastRunAt: string | null;
+  schedule: string | null;
+  scheduleEnabled: boolean;
 }
 
 export interface PipelinesConfig {
