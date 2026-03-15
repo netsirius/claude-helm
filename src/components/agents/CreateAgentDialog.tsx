@@ -125,7 +125,7 @@ export default function CreateAgentDialog({
         className="absolute inset-0 bg-[#141413]/80"
         onClick={resetAndClose}
       />
-      <div className="relative bg-[#1e1e1c] border border-[#2a2a28] rounded-xl w-full max-w-md p-6 shadow-2xl">
+      <div className="relative bg-[#1e1e1c] border border-[#2a2a28] rounded-xl w-full max-w-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-[#faf9f5]">New Agent</h2>
           <button
@@ -136,155 +136,98 @@ export default function CreateAgentDialog({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-[#b0aea5] mb-1">
-              Name
-            </label>
-            <input
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="coder-1"
-              className={inputClass}
-            />
-          </div>
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-2 gap-6">
+            {/* Left column — Identity & Config */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-[#b0aea5] mb-1">Name</label>
+                <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="coder-1" className={inputClass} />
+              </div>
 
-          <div>
-            <label className="block text-xs font-medium text-[#b0aea5] mb-1">
-              Role
-            </label>
-            <input
-              required
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              placeholder="backend-dev"
-              className={inputClass}
-            />
-          </div>
+              <div>
+                <label className="block text-xs font-medium text-[#b0aea5] mb-1">Role</label>
+                <input required value={role} onChange={(e) => setRole(e.target.value)} placeholder="backend-dev" className={inputClass} />
+              </div>
 
-          {/* Icon picker */}
-          <div>
-            <label className="block text-xs font-medium text-[#b0aea5] mb-2">
-              Icon
-            </label>
-            <div className="flex gap-2 flex-wrap">
-              {ICONS.map((ic) => (
-                <button
-                  key={ic}
-                  type="button"
-                  onClick={() => setIcon(ic)}
-                  className={`w-9 h-9 flex items-center justify-center rounded-lg text-lg transition-colors ${
-                    icon === ic
-                      ? "bg-[#d97757]/30 ring-2 ring-[#d97757]"
-                      : "bg-[#2a2a28] hover:bg-[#3a3a37]"
-                  }`}
-                >
-                  {ic}
-                </button>
-              ))}
+              {/* Icon & Color on same row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-[#b0aea5] mb-2">Icon</label>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {ICONS.map((ic) => (
+                      <button key={ic} type="button" onClick={() => setIcon(ic)}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-base transition-colors ${icon === ic ? "bg-[#d97757]/30 ring-2 ring-[#d97757]" : "bg-[#2a2a28] hover:bg-[#3a3a37]"}`}
+                      >{ic}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-[#b0aea5] mb-2">Color</label>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {COLORS.map((c) => (
+                      <button key={c} type="button" onClick={() => setColor(c)}
+                        className={`w-6 h-6 rounded-full transition-all ${color === c ? "ring-2 ring-offset-2 ring-offset-[#1e1e1c] ring-[#faf9f5] scale-110" : "hover:scale-110"}`}
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Model & Remote on same row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-[#b0aea5] mb-1">Model</label>
+                  <select value={model} onChange={(e) => setModel(e.target.value)} className={inputClass}>
+                    {MODELS.map((m) => (<option key={m.value} value={m.value}>{m.label}</option>))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-[#b0aea5] mb-1">Remote</label>
+                  <select value={remoteId} onChange={(e) => setRemoteId(e.target.value)} className={inputClass}
+                  >
+                    <option value="">None (assign later)</option>
+                    {remoteList.map((v) => (
+                      <option key={v.id} value={v.id}>{v.name} ({v.host})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Right column — Behavior */}
+            <div className="space-y-3">
+              <label className="block text-xs font-medium text-[#b0aea5]">Behavior</label>
+              <div className="flex gap-1.5 flex-wrap">
+                {PROMPT_TEMPLATES.map((t, i) => (
+                  <button key={t.label} type="button"
+                    onClick={() => { setSelectedTemplate(i); setSystemPrompt(t.prompt); }}
+                    className={`px-2.5 py-1 text-[11px] rounded-lg transition-colors ${
+                      selectedTemplate === i
+                        ? "bg-[#d97757]/20 text-[#d97757] ring-1 ring-[#d97757]"
+                        : "bg-[#2a2a28] text-[#b0aea5] hover:bg-[#3a3a37]"
+                    }`}
+                  >{t.label}</button>
+                ))}
+              </div>
+              <textarea
+                value={systemPrompt}
+                onChange={(e) => {
+                  setSystemPrompt(e.target.value);
+                  setSelectedTemplate(PROMPT_TEMPLATES.length - 1);
+                }}
+                rows={8}
+                placeholder="System prompt for this agent — defines how it behaves when running autonomously..."
+                className={`${inputClass} resize-y min-h-[120px]`}
+              />
+              <p className="text-[10px] text-[#b0aea5]/60 mt-1">
+                Agents run with --permission-mode auto. The system prompt guides autonomous behavior.
+              </p>
             </div>
           </div>
 
-          {/* Color picker */}
-          <div>
-            <label className="block text-xs font-medium text-[#b0aea5] mb-2">
-              Color
-            </label>
-            <div className="flex gap-2 flex-wrap">
-              {COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  className={`w-7 h-7 rounded-full transition-all ${
-                    color === c
-                      ? "ring-2 ring-offset-2 ring-offset-[#1e1e1c] ring-[#faf9f5] scale-110"
-                      : "hover:scale-110"
-                  }`}
-                  style={{ backgroundColor: c }}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Model selector */}
-          <div>
-            <label className="block text-xs font-medium text-[#b0aea5] mb-1">
-              Model
-            </label>
-            <select
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              className={inputClass}
-            >
-              {MODELS.map((m) => (
-                <option key={m.value} value={m.value}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Remote selector */}
-          <div>
-            <label className="block text-xs font-medium text-[#b0aea5] mb-1">
-              Remote
-            </label>
-            <select
-              value={remoteId}
-              onChange={(e) => setRemoteId(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">None (assign later)</option>
-              {remoteList.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name} ({v.host})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* System Prompt (behavior template) */}
-          <div>
-            <label className="block text-xs font-medium text-[#b0aea5] mb-2">
-              Behavior
-            </label>
-            <div className="flex gap-1.5 flex-wrap mb-2">
-              {PROMPT_TEMPLATES.map((t, i) => (
-                <button
-                  key={t.label}
-                  type="button"
-                  onClick={() => {
-                    setSelectedTemplate(i);
-                    setSystemPrompt(t.prompt);
-                  }}
-                  className={`px-2.5 py-1 text-[11px] rounded-lg transition-colors ${
-                    selectedTemplate === i
-                      ? "bg-[#d97757]/20 text-[#d97757] ring-1 ring-[#d97757]"
-                      : "bg-[#2a2a28] text-[#b0aea5] hover:bg-[#3a3a37]"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-            <textarea
-              value={systemPrompt}
-              onChange={(e) => {
-                setSystemPrompt(e.target.value);
-                setSelectedTemplate(PROMPT_TEMPLATES.length - 1); // switch to Custom
-              }}
-              rows={3}
-              placeholder="System prompt for this agent — defines how it behaves when running autonomously..."
-              className={`${inputClass} resize-none`}
-            />
-            <p className="text-[10px] text-[#b0aea5]/60 mt-1">
-              Agents run with --permission-mode auto. The system prompt guides autonomous behavior.
-            </p>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-[#2a2a28]">
             <button
               type="button"
               onClick={resetAndClose}
