@@ -613,6 +613,13 @@ pub async fn execute_pipeline(
                 break;
             }
 
+            // Capture baseline pane content BEFORE sending prompt
+            // This lets us extract only NEW output after our prompt
+            let baseline_line_count = match sessions::capture_pane(&handle, &session_name, 500).await {
+                Ok(raw) => strip_ansi(&raw).lines().count(),
+                Err(_) => 0,
+            };
+
             // Write prompt to temp file on remote then send to Claude via tmux
             let escaped_prompt = prompt.replace('\'', "'\\''");
             let write_cmd = format!(
@@ -655,11 +662,18 @@ pub async fn execute_pipeline(
                     }
                 }
 
-                match sessions::capture_pane(&handle, &session_name, 200).await {
+                match sessions::capture_pane(&handle, &session_name, 500).await {
                     Ok(raw_output) => {
                         let clean = strip_ansi(&raw_output);
                         if is_claude_idle(&clean) {
-                            captured_output = extract_claude_response(&clean);
+                            // Extract only the NEW lines (after baseline)
+                            let all_lines: Vec<&str> = clean.lines().collect();
+                            let new_content = if baseline_line_count > 0 && all_lines.len() > baseline_line_count {
+                                all_lines[baseline_line_count..].join("\n")
+                            } else {
+                                clean.clone()
+                            };
+                            captured_output = extract_claude_response(&new_content);
                             completed = true;
                             break;
                         }
