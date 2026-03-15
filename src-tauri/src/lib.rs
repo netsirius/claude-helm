@@ -70,6 +70,8 @@ pub fn run() {
             commands::remote_admin_commands::remove_remote_extension,
             commands::remote_admin_commands::toggle_remote_extension,
             commands::remote_admin_commands::search_skills_marketplace,
+            commands::analytics_commands::get_remote_usage_stats,
+            commands::analytics_commands::get_session_heatmap,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,4 +1,5 @@
 pub mod agent_commands;
+pub mod analytics_commands;
 pub mod extension_commands;
 pub mod helpers;
 pub mod pipeline_commands;
