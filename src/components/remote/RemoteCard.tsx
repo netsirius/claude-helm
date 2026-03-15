@@ -8,6 +8,7 @@ import {
   Settings,
   Download,
   AlertCircle,
+  ArrowUpCircle,
 } from "lucide-react";
 import type { Remote } from "../../stores/remoteStore";
 import { useRemoteStore } from "../../stores/remoteStore";
@@ -47,6 +48,7 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
   const [probeResult, setProbeResult] = useState<ProbeResult | null>(null);
   const [probed, setProbed] = useState(false);
   const [installing, setInstalling] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const testConnection = useRemoteStore((s) => s.testConnection);
   const remove = useRemoteStore((s) => s.remove);
@@ -99,6 +101,25 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
     }
   };
 
+  const handleUpdate = async () => {
+    setUpdating(true);
+    try {
+      const newVersion = await tauriInvoke<string>("update_claude_remote", {
+        remoteId: remote.id,
+      });
+      // Re-probe to get fresh data
+      const probe = await tauriInvoke<ProbeResult>("probe_remote", {
+        id: remote.id,
+      });
+      setProbeResult(probe);
+      alert(`Claude updated to ${newVersion}`);
+    } catch (e) {
+      alert(`Update failed: ${e}`);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (
       !window.confirm(
@@ -110,6 +131,7 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
   };
 
   const claudeNotInstalled = probed && !probeResult?.claudePath;
+  const claudeInstalled = probed && probeResult?.claudePath;
 
   return (
     <>
@@ -158,18 +180,18 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
           </div>
         )}
 
-        {/* Claude status badge */}
+        {/* Claude not installed badge */}
         {claudeNotInstalled && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#d97757]/10 border border-[#d97757]/20">
-            <AlertCircle size={14} className="text-[#d97757]" />
-            <span className="text-xs text-[#d97757]">Claude not installed</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#c45c4a]/10 border border-[#c45c4a]/20">
+            <AlertCircle size={14} className="text-[#c45c4a]" />
+            <span className="text-xs text-[#c45c4a]">Not installed</span>
             <button
               onClick={handleInstall}
               disabled={installing}
               className="ml-auto flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50"
             >
               {installing ? (
-                <Loader2 size={12} className="animate-spin" />
+                <Loader2 size={12} className="animate-spin text-[#6a9bcc]" />
               ) : (
                 <Download size={12} />
               )}
@@ -178,13 +200,26 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
           </div>
         )}
 
-        {probed && probeResult?.claudePath && (
-          <p className="text-xs text-[#b0aea5]/60">
-            Claude:{" "}
-            <span className="text-[#b0aea5]">
-              {probeResult.claudeVersion || "installed"}
+        {/* Claude installed badge with version and update button */}
+        {claudeInstalled && (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#788c5d]/10 border border-[#788c5d]/20">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#788c5d]">
+              Claude {probeResult?.claudeVersion || "installed"}
             </span>
-          </p>
+            <button
+              onClick={handleUpdate}
+              disabled={updating}
+              className="ml-auto flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-[#2a2a28] hover:bg-[#3a3a37] text-[#b0aea5] hover:text-[#faf9f5] transition-colors disabled:opacity-50"
+              title="Update Claude"
+            >
+              {updating ? (
+                <Loader2 size={12} className="animate-spin text-[#6a9bcc]" />
+              ) : (
+                <ArrowUpCircle size={12} />
+              )}
+              Update
+            </button>
+          </div>
         )}
 
         <div className="flex items-center gap-2 mt-auto pt-2 border-t border-[#2a2a28]">

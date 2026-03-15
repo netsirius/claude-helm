@@ -43,6 +43,7 @@ pub fn run() {
             commands::remote_commands::read_remote_claude_config,
             commands::remote_commands::write_remote_claude_config,
             commands::remote_commands::install_claude_remote,
+            commands::remote_commands::update_claude_remote,
             commands::agent_commands::list_agents,
             commands::agent_commands::add_agent,
             commands::agent_commands::remove_agent,

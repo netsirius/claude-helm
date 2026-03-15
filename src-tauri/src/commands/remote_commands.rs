@@ -493,3 +493,65 @@ pub async fn install_claude_remote(
 
     Ok(output)
 }
+
+/// Update (or re-install) Claude CLI on a remote machine.
+///
+/// Tries `claude update` first; if that fails, falls back to the
+/// official install script which handles both fresh installs and updates.
+/// Re-probes after the update to refresh cached capabilities.
+#[tauri::command]
+pub async fn update_claude_remote(
+    state: State<'_, AppState>,
+    remote_id: String,
+) -> Result<String, String> {
+    let handle = get_handle(&state, &remote_id).await?;
+
+    // Try `claude update` first, fall back to the install script
+    let result = exec_command(
+        &handle,
+        "claude update 2>&1 || curl -fsSL https://claude.ai/install.sh | sh 2>&1",
+    )
+    .await?;
+
+    let output = format!("{}{}", result.stdout, result.stderr);
+
+    if result.exit_code != 0 {
+        return Err(format!(
+            "Claude update failed (exit {}): {}",
+            result.exit_code,
+            output.trim()
+        ));
+    }
+
+    // Re-probe the remote to update cached capabilities
+    let probe = run_probe(&handle).await?;
+
+    // Save updated probe result
+    {
+        let store = state.config.lock().await;
+        let probes_dir = store.base_dir().join("probes");
+        fs::create_dir_all(&probes_dir)
+            .map_err(|e| format!("Failed to create probes directory: {}", e))?;
+
+        let probe_json = serde_json::to_string_pretty(&probe)
+            .map_err(|e| format!("Failed to serialise probe result: {}", e))?;
+        let probe_path = probes_dir.join(format!("{}.json", remote_id));
+
+        if !probe_path.starts_with(&probes_dir) {
+            return Err(format!(
+                "Invalid remote ID '{}': results in path traversal",
+                remote_id
+            ));
+        }
+
+        fs::write(&probe_path, &probe_json)
+            .map_err(|e| format!("Failed to write probe file: {}", e))?;
+    }
+
+    // Return the new version (or the full output if version not found)
+    let version = probe
+        .claude_version
+        .unwrap_or_else(|| "installed (version unknown)".to_string());
+
+    Ok(version)
+}

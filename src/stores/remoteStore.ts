@@ -37,7 +37,7 @@ interface RemoteState {
     port?: number;
     tags?: string[];
     group?: string;
-  }) => Promise<void>;
+  }) => Promise<Remote>;
   update: (id: string, updates: RemoteUpdates) => Promise<void>;
   remove: (id: string) => Promise<void>;
   testConnection: (id: string) => Promise<boolean>;
@@ -61,7 +61,7 @@ export const useRemoteStore = create<RemoteState>((set, get) => ({
   add: async (remote) => {
     set({ loading: true, error: null });
     try {
-      await tauriInvoke<Remote>("add_remote", {
+      const created = await tauriInvoke<Remote>("add_remote", {
         name: remote.name,
         host: remote.host,
         user: remote.user,
@@ -71,8 +71,10 @@ export const useRemoteStore = create<RemoteState>((set, get) => ({
         group: remote.group,
       });
       await get().fetch();
+      return created;
     } catch (e) {
       set({ error: String(e), loading: false });
+      throw e;
     }
   },
 
