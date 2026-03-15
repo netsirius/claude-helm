@@ -466,9 +466,9 @@ export default function Pipelines() {
                       return (
                         <div
                           key={`output-${step.id}`}
-                          className="mt-2 rounded-xl bg-[#141413] border border-[#2a2a28] overflow-hidden"
+                          className="mt-2 rounded-xl bg-[#141413] border border-[#2a2a28]"
                         >
-                          <div className="flex items-center gap-2 px-4 py-2 bg-[#1e1e1c] border-b border-[#2a2a28]">
+                          <div className="flex items-center gap-2 px-4 py-2 bg-[#1e1e1c] border-b border-[#2a2a28] rounded-t-xl">
                             {agent && (
                               <div
                                 className="w-4 h-4 rounded-full flex items-center justify-center text-[10px]"
@@ -484,10 +484,10 @@ export default function Pipelines() {
                               {step.output?.length} chars
                             </span>
                           </div>
-                          <div className="p-4 max-h-[500px] overflow-y-auto">
-                            <div className="text-sm text-[#e8e6dc] whitespace-pre-wrap break-words leading-relaxed font-mono">
+                          <div className="p-4 overflow-y-auto" style={{ maxHeight: "70vh" }}>
+                            <pre className="text-sm text-[#e8e6dc] whitespace-pre-wrap break-words leading-relaxed font-mono m-0">
                               {step.output}
-                            </div>
+                            </pre>
                           </div>
                         </div>
                       );
