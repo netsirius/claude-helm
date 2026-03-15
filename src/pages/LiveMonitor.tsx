@@ -12,19 +12,26 @@ export default function LiveMonitor() {
   const { agents, fetch: fetchAgents } = useAgentStore();
   const [showPicker, setShowPicker] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isRefreshing = useRef(false);
 
   // Fetch agents on mount
   useEffect(() => {
     fetchAgents();
   }, [fetchAgents]);
 
-  // Poll refreshAll every 2s while mounted
+  // Poll refreshAll every 2s while mounted, with in-flight guard
   useEffect(() => {
     // Initial refresh
     refreshAll();
 
-    intervalRef.current = setInterval(() => {
-      refreshAll();
+    intervalRef.current = setInterval(async () => {
+      if (isRefreshing.current) return;
+      isRefreshing.current = true;
+      try {
+        await refreshAll();
+      } finally {
+        isRefreshing.current = false;
+      }
     }, 2000);
 
     return () => {

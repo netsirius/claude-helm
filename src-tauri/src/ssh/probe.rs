@@ -21,6 +21,11 @@ pub struct ProbeResult {
 const PROBE_SCRIPT: &str = r#"
 set -e
 
+# Helper: JSON-escape a string value (handles backslashes and double quotes)
+json_str() {
+    printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
 claude_path=$(command -v claude 2>/dev/null || echo "")
 claude_version=""
 if [ -n "$claude_path" ]; then
@@ -53,14 +58,14 @@ current_shell=$(basename "$SHELL" 2>/dev/null || echo "unknown")
 # Output as JSON
 cat <<ENDJSON
 {
-    "claudePath": $(if [ -n "$claude_path" ]; then printf '"%s"' "$claude_path"; else echo "null"; fi),
-    "claudeVersion": $(if [ -n "$claude_version" ]; then printf '"%s"' "$claude_version"; else echo "null"; fi),
+    "claudePath": $(if [ -n "$claude_path" ]; then printf '"%s"' "$(json_str "$claude_path")"; else echo "null"; fi),
+    "claudeVersion": $(if [ -n "$claude_version" ]; then printf '"%s"' "$(json_str "$claude_version")"; else echo "null"; fi),
     "hasTmux": $has_tmux,
     "hasScreen": $has_screen,
     "hasFlock": $has_flock,
-    "configDir": $(if [ -n "$config_dir" ]; then printf '"%s"' "$config_dir"; else echo "null"; fi),
-    "settingsFormat": "$settings_format",
-    "shell": "$current_shell"
+    "configDir": $(if [ -n "$config_dir" ]; then printf '"%s"' "$(json_str "$config_dir")"; else echo "null"; fi),
+    "settingsFormat": "$(json_str "$settings_format")",
+    "shell": "$(json_str "$current_shell")"
 }
 ENDJSON
 "#;

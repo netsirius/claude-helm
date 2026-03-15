@@ -27,24 +27,38 @@ impl ConfigStore {
     pub fn load<T: DeserializeOwned + Default>(&self, filename: &str) -> T {
         let path = self.base_dir.join(filename);
         match fs::read_to_string(&path) {
-            Ok(contents) => serde_json::from_str(&contents).unwrap_or_default(),
+            Ok(contents) => match serde_json::from_str(&contents) {
+                Ok(parsed) => parsed,
+                Err(e) => {
+                    eprintln!(
+                        "[config] WARNING: failed to parse '{}': {} — using defaults",
+                        path.display(),
+                        e
+                    );
+                    T::default()
+                }
+            },
             Err(_) => T::default(),
         }
     }
 
     pub fn save<T: Serialize>(&self, filename: &str, data: &T) -> std::io::Result<()> {
         let path = self.base_dir.join(filename);
+        let tmp_path = self.base_dir.join(format!("{}.tmp", filename));
         let json = serde_json::to_string_pretty(data)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-        fs::write(&path, &json)?;
+
+        // Write to a temporary file first, then atomically rename
+        fs::write(&tmp_path, &json)?;
 
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
             let perms = fs::Permissions::from_mode(0o600);
-            fs::set_permissions(&path, perms)?;
+            fs::set_permissions(&tmp_path, perms)?;
         }
 
+        fs::rename(&tmp_path, &path)?;
         Ok(())
     }
 }

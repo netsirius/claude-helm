@@ -38,13 +38,16 @@ pub async fn add_agent(
 
     let result = agent.clone();
 
-    let mut config = state.agents_config.lock().await;
-    config.add(agent);
+    let data = {
+        let mut config = state.agents_config.lock().await;
+        config.add(agent);
+        config.clone()
+    };
 
-    // Persist
+    // Persist (config lock is dropped before acquiring store lock)
     let store = state.config.lock().await;
     store
-        .save("agents.json", &*config)
+        .save("agents.json", &data)
         .map_err(|e| format!("Failed to save agents config: {}", e))?;
 
     Ok(result)
@@ -53,13 +56,16 @@ pub async fn add_agent(
 /// Remove an agent by ID and persist to disk.  Returns `true` if the entry existed.
 #[tauri::command]
 pub async fn remove_agent(state: State<'_, AppState>, id: String) -> Result<bool, String> {
-    let mut config = state.agents_config.lock().await;
-    let removed = config.remove(&id);
+    let (removed, data) = {
+        let mut config = state.agents_config.lock().await;
+        let removed = config.remove(&id);
+        (removed, config.clone())
+    };
 
     if removed {
         let store = state.config.lock().await;
         store
-            .save("agents.json", &*config)
+            .save("agents.json", &data)
             .map_err(|e| format!("Failed to save agents config: {}", e))?;
     }
 

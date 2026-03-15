@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { RefreshCw, Puzzle, ChevronDown } from "lucide-react";
+import { RefreshCw, Puzzle, ChevronDown, AlertTriangle } from "lucide-react";
 import { useVpsStore } from "../stores/vpsStore";
 import { tauriInvoke } from "../lib/tauri";
 
@@ -23,6 +23,7 @@ export default function Extensions() {
   const [selectedVpsId, setSelectedVpsId] = useState<string | null>(null);
   const [extensions, setExtensions] = useState<Extension[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Extension["extType"]>("mcp");
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -32,13 +33,21 @@ export default function Extensions() {
 
   const loadExtensions = async (vpsId: string) => {
     setLoading(true);
+    setError(null);
     try {
       const result = await tauriInvoke<Extension[]>("list_vps_extensions", {
         vpsId,
       });
       setExtensions(result);
-    } catch {
+    } catch (err) {
       setExtensions([]);
+      setError(
+        err instanceof Error
+          ? err.message
+          : typeof err === "string"
+            ? err
+            : "Failed to load extensions",
+      );
     } finally {
       setLoading(false);
     }
@@ -113,6 +122,20 @@ export default function Extensions() {
           </button>
         </div>
       </div>
+
+      {/* Error banner */}
+      {error && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
+          <AlertTriangle size={18} className="flex-shrink-0" />
+          <p className="text-sm">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="ml-auto text-xs text-red-400/70 hover:text-red-400 transition-colors"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* No VPS selected */}
       {!selectedVpsId ? (

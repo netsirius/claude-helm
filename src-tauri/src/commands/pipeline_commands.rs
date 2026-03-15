@@ -20,12 +20,15 @@ pub async fn create_pipeline(
     let pipeline = Pipeline::new(name, description);
     let result = pipeline.clone();
 
-    let mut config = state.pipelines_config.lock().await;
-    config.add(pipeline);
+    let data = {
+        let mut config = state.pipelines_config.lock().await;
+        config.add(pipeline);
+        config.clone()
+    };
 
     let store = state.config.lock().await;
     store
-        .save("pipelines.json", &*config)
+        .save("pipelines.json", &data)
         .map_err(|e| format!("Failed to save pipelines config: {}", e))?;
 
     Ok(result)
@@ -44,15 +47,18 @@ pub async fn add_pipeline_step(
     step.depends_on = depends_on;
     let result = step.clone();
 
-    let mut config = state.pipelines_config.lock().await;
-    let pipeline = config
-        .get_mut(&pipeline_id)
-        .ok_or_else(|| format!("Pipeline '{}' not found", pipeline_id))?;
-    pipeline.steps.push(step);
+    let data = {
+        let mut config = state.pipelines_config.lock().await;
+        let pipeline = config
+            .get_mut(&pipeline_id)
+            .ok_or_else(|| format!("Pipeline '{}' not found", pipeline_id))?;
+        pipeline.steps.push(step);
+        config.clone()
+    };
 
     let store = state.config.lock().await;
     store
-        .save("pipelines.json", &*config)
+        .save("pipelines.json", &data)
         .map_err(|e| format!("Failed to save pipelines config: {}", e))?;
 
     Ok(result)
@@ -61,13 +67,16 @@ pub async fn add_pipeline_step(
 /// Delete a pipeline by ID and persist to disk. Returns `true` if the entry existed.
 #[tauri::command]
 pub async fn delete_pipeline(state: State<'_, AppState>, id: String) -> Result<bool, String> {
-    let mut config = state.pipelines_config.lock().await;
-    let removed = config.remove(&id);
+    let (removed, data) = {
+        let mut config = state.pipelines_config.lock().await;
+        let removed = config.remove(&id);
+        (removed, config.clone())
+    };
 
     if removed {
         let store = state.config.lock().await;
         store
-            .save("pipelines.json", &*config)
+            .save("pipelines.json", &data)
             .map_err(|e| format!("Failed to save pipelines config: {}", e))?;
     }
 

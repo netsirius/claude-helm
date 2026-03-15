@@ -34,6 +34,7 @@ export default function VpsCard({ vps }: VpsCardProps) {
   };
 
   const handleDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete VPS "${vps.name}"?`)) return;
     await remove(vps.id);
   };
 

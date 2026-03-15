@@ -26,6 +26,7 @@ export default function Pipelines() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this pipeline?")) return;
     await remove(id);
   };
 
