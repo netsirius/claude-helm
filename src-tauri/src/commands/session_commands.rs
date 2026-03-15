@@ -309,9 +309,6 @@ pub async fn open_session_terminal(
 }
 
 /// Start remote-control mode for a Claude session and return the generated URL.
-///
-/// Uses a shell pipeline on the remote to extract the URL directly,
-/// avoiding ANSI parsing issues with tmux capture-pane.
 #[tauri::command]
 pub async fn start_remote_control(
     state: State<'_, AppState>,
@@ -320,38 +317,63 @@ pub async fn start_remote_control(
 ) -> Result<String, String> {
     let handle = get_handle(&state, &remote_id).await?;
 
-    // First: check if remote-control is already active by grep'ing the pane
-    let grep_cmd = format!(
-        "tmux capture-pane -t '{}' -p -S -50 2>/dev/null | sed 's/\\x1b\\[[0-9;]*[a-zA-Z]//g' | grep -oE 'https://claude\\.ai/[^ ]+' | head -1",
-        session_id
-    );
-    let result = exec_command(&handle, &grep_cmd).await?;
-    let existing_url = result.stdout.trim().to_string();
-
-    if !existing_url.is_empty() && existing_url.starts_with("https://") {
-        return Ok(existing_url);
+    // Check if URL already in pane output
+    if let Some(url) = find_rc_url(&handle, &session_id).await {
+        return Ok(url);
     }
 
-    // Not active — send /remote-control
-    let send_cmd = format!("tmux send-keys -t '{}' '/remote-control' Enter", session_id);
+    // Send /remote-control
+    let send_cmd = format!("tmux send-keys -t {} /remote-control Enter", session_id);
     exec_command(&handle, &send_cmd).await?;
 
-    // Poll with grep (up to 12 seconds)
+    // Poll for URL (up to 12s)
     for _ in 0..4 {
         tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-
-        let result = exec_command(&handle, &grep_cmd).await?;
-        let url = result.stdout.trim().to_string();
-
-        if !url.is_empty() && url.starts_with("https://") {
-            // Dismiss any interactive menu with Esc
-            let esc_cmd = format!("tmux send-keys -t '{}' Escape", session_id);
-            let _ = exec_command(&handle, &esc_cmd).await;
+        if let Some(url) = find_rc_url(&handle, &session_id).await {
+            // Dismiss menu if visible
+            let esc = format!("tmux send-keys -t {} Escape", session_id);
+            let _ = exec_command(&handle, &esc).await;
             return Ok(url);
         }
     }
 
-    Err("Could not find remote control URL. Make sure the session is at Claude's idle prompt (❯).".to_string())
+    Err("Could not find remote control URL. Make sure the session is at Claude's idle prompt.".to_string())
+}
+
+/// Capture tmux pane and extract claude.ai URL using remote-side grep.
+/// Avoids single-quote escaping issues by writing a temp script.
+async fn find_rc_url(
+    handle: &crate::ssh::connection::SharedHandle,
+    session_id: &str,
+) -> Option<String> {
+    // Write a small script to avoid quote escaping issues with bash -c wrapping
+    let script = format!(
+        "tmux capture-pane -t {} -p -S -50 2>/dev/null | tr -d '\\033' | grep -o 'https://claude.ai/[^ ]*' | head -1",
+        session_id
+    );
+    // Execute via a heredoc to avoid escaping hell
+    let cmd = format!("sh -c \"{}\"", script.replace('"', "\\\""));
+
+    // Actually, simplest approach: just capture and let Rust find the URL
+    let capture_cmd = format!("tmux capture-pane -t {} -p -S -50", session_id);
+    match exec_command(handle, &capture_cmd).await {
+        Ok(result) => {
+            let output = result.stdout;
+            // Simple byte-level search for the URL
+            for line in output.lines() {
+                if let Some(pos) = line.find("https://claude.ai/") {
+                    let rest = &line[pos..];
+                    let end = rest.find(|c: char| c.is_whitespace()).unwrap_or(rest.len());
+                    let url = rest[..end].trim();
+                    if !url.is_empty() {
+                        return Some(url.to_string());
+                    }
+                }
+            }
+            None
+        }
+        Err(_) => None,
+    }
 }
 
 /// Helper: look up connection details for a remote and obtain a pooled SSH handle.

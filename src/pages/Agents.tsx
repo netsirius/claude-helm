@@ -189,15 +189,32 @@ export default function Agents() {
         remoteId: agent.currentRemoteId,
         sessionId: agent.currentSessionId,
       });
+
+      if (!url || !url.startsWith("https://")) {
+        alert("Could not get remote control URL.");
+        return;
+      }
+
       await navigator.clipboard.writeText(url);
+
+      // Try opening with Tauri opener, fallback to window.open
+      let opened = false;
       try {
         const { openUrl } = await import("@tauri-apps/plugin-opener");
         await openUrl(url);
+        opened = true;
       } catch {
-        window.open(url, "_blank");
+        try {
+          const w = window.open(url, "_blank");
+          opened = !!w;
+        } catch { /* ignore */ }
+      }
+
+      if (!opened) {
+        alert(`Open this URL in your browser:\n\n${url}\n\n(Copied to clipboard)`);
       }
     } catch (e) {
-      alert(`Failed to start remote control: ${e}`);
+      alert(`Remote control error: ${e}`);
     }
   };
 
