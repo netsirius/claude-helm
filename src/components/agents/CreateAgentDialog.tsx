@@ -39,6 +39,10 @@ const MODELS = [
 
 const PROMPT_TEMPLATES = [
   {
+    label: "None (manual)",
+    prompt: "",
+  },
+  {
     label: "Auto-decide",
     prompt: "You are fully autonomous. Never wait for human input. When presented with choices, select the most reasonable option and proceed. When asked for confirmation, confirm and continue. When a plan is ready, execute it immediately. Complete all tasks end-to-end without stopping.",
   },
