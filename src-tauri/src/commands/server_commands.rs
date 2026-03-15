@@ -2,21 +2,21 @@ use chrono::Utc;
 use std::fs;
 use tauri::State;
 
-use crate::config::vps::{Vps, VpsStatus};
+use crate::config::server::{Server, ServerStatus};
 use crate::ssh::commands::exec_command;
 use crate::ssh::probe::{run_probe, ProbeResult};
 use crate::state::AppState;
 
-/// Return the full list of configured VPS servers.
+/// Return the full list of configured servers.
 #[tauri::command]
-pub async fn list_vps(state: State<'_, AppState>) -> Result<Vec<Vps>, String> {
-    let config = state.vps_config.lock().await;
+pub async fn list_servers(state: State<'_, AppState>) -> Result<Vec<Server>, String> {
+    let config = state.server_config.lock().await;
     Ok(config.servers.clone())
 }
 
-/// Add a new VPS entry and persist to disk.
+/// Add a new server entry and persist to disk.
 #[tauri::command]
-pub async fn add_vps(
+pub async fn add_server(
     state: State<'_, AppState>,
     name: String,
     host: String,
@@ -25,39 +25,39 @@ pub async fn add_vps(
     port: Option<u16>,
     tags: Option<Vec<String>>,
     group: Option<String>,
-) -> Result<Vps, String> {
-    let mut vps = Vps::new(name, host, user, ssh_key_path);
+) -> Result<Server, String> {
+    let mut server = Server::new(name, host, user, ssh_key_path);
 
     if let Some(p) = port {
-        vps.port = p;
+        server.port = p;
     }
     if let Some(t) = tags {
-        vps.tags = t;
+        server.tags = t;
     }
     if let Some(g) = group {
-        vps.group = g;
+        server.group = g;
     }
 
-    let result = vps.clone();
+    let result = server.clone();
 
-    let mut config = state.vps_config.lock().await;
-    config.add(vps);
+    let mut config = state.server_config.lock().await;
+    config.add(server);
 
     // Persist
     let store = state.config.lock().await;
     store
-        .save("vps.json", &*config)
-        .map_err(|e| format!("Failed to save VPS config: {}", e))?;
+        .save("servers.json", &*config)
+        .map_err(|e| format!("Failed to save server config: {}", e))?;
 
     Ok(result)
 }
 
-/// Update an existing VPS entry, applying only the provided fields.
+/// Update an existing server entry, applying only the provided fields.
 ///
 /// If connection-relevant fields (host, port, user, ssh_key_path) change,
 /// the old SSH connection is disconnected so a fresh one will be created.
 #[tauri::command]
-pub async fn update_vps(
+pub async fn update_server(
     state: State<'_, AppState>,
     id: String,
     name: Option<String>,
@@ -67,53 +67,53 @@ pub async fn update_vps(
     ssh_key_path: Option<String>,
     tags: Option<Vec<String>>,
     group: Option<String>,
-) -> Result<Vps, String> {
+) -> Result<Server, String> {
     // Determine whether connection-relevant fields are changing
     let needs_reconnect;
     let updated;
 
     {
-        let mut config = state.vps_config.lock().await;
-        let vps = config
+        let mut config = state.server_config.lock().await;
+        let server = config
             .get_mut(&id)
-            .ok_or_else(|| format!("VPS '{}' not found", id))?;
+            .ok_or_else(|| format!("Server '{}' not found", id))?;
 
         // Check if any SSH-relevant field is being changed
-        needs_reconnect = host.as_ref().is_some_and(|v| *v != vps.host)
-            || port.is_some_and(|v| v != vps.port)
-            || user.as_ref().is_some_and(|v| *v != vps.user)
-            || ssh_key_path.as_ref().is_some_and(|v| *v != vps.ssh_key_path);
+        needs_reconnect = host.as_ref().is_some_and(|v| *v != server.host)
+            || port.is_some_and(|v| v != server.port)
+            || user.as_ref().is_some_and(|v| *v != server.user)
+            || ssh_key_path.as_ref().is_some_and(|v| *v != server.ssh_key_path);
 
         // Apply only provided fields
         if let Some(v) = name {
-            vps.name = v;
+            server.name = v;
         }
         if let Some(v) = host {
-            vps.host = v;
+            server.host = v;
         }
         if let Some(v) = user {
-            vps.user = v;
+            server.user = v;
         }
         if let Some(v) = port {
-            vps.port = v;
+            server.port = v;
         }
         if let Some(v) = ssh_key_path {
-            vps.ssh_key_path = v;
+            server.ssh_key_path = v;
         }
         if let Some(v) = tags {
-            vps.tags = v;
+            server.tags = v;
         }
         if let Some(v) = group {
-            vps.group = v;
+            server.group = v;
         }
 
-        updated = vps.clone();
+        updated = server.clone();
 
-        // Persist — acquire config store while still holding vps_config
+        // Persist — acquire config store while still holding server_config
         let store = state.config.lock().await;
         store
-            .save("vps.json", &*config)
-            .map_err(|e| format!("Failed to save VPS config: {}", e))?;
+            .save("servers.json", &*config)
+            .map_err(|e| format!("Failed to save server config: {}", e))?;
     }
 
     // Disconnect old SSH session if connection details changed
@@ -124,45 +124,45 @@ pub async fn update_vps(
     Ok(updated)
 }
 
-/// Remove a VPS by ID and persist to disk.  Returns `true` if the entry existed.
+/// Remove a server by ID and persist to disk.  Returns `true` if the entry existed.
 #[tauri::command]
-pub async fn remove_vps(state: State<'_, AppState>, id: String) -> Result<bool, String> {
-    let mut config = state.vps_config.lock().await;
+pub async fn remove_server(state: State<'_, AppState>, id: String) -> Result<bool, String> {
+    let mut config = state.server_config.lock().await;
     let removed = config.remove(&id);
 
     if removed {
-        // Disconnect any pooled SSH session for this VPS
+        // Disconnect any pooled SSH session for this server
         let _ = state.ssh_pool.disconnect(&id).await;
 
         // Persist
         let store = state.config.lock().await;
         store
-            .save("vps.json", &*config)
-            .map_err(|e| format!("Failed to save VPS config: {}", e))?;
+            .save("servers.json", &*config)
+            .map_err(|e| format!("Failed to save server config: {}", e))?;
     }
 
     Ok(removed)
 }
 
-/// Test connectivity to a VPS by SSHing in and running `echo ok`.
+/// Test connectivity to a server by SSHing in and running `echo ok`.
 ///
-/// Updates the VPS status to Online or Offline and persists the change.
+/// Updates the server status to Online or Offline and persists the change.
 #[tauri::command]
-pub async fn test_vps_connection(
+pub async fn test_server_connection(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<bool, String> {
     // Read connection details while holding the lock briefly
     let (host, port, user, key_path) = {
-        let config = state.vps_config.lock().await;
-        let vps = config
+        let config = state.server_config.lock().await;
+        let server = config
             .get(&id)
-            .ok_or_else(|| format!("VPS '{}' not found", id))?;
+            .ok_or_else(|| format!("Server '{}' not found", id))?;
         (
-            vps.host.clone(),
-            vps.port,
-            vps.user.clone(),
-            vps.ssh_key_path.clone(),
+            server.host.clone(),
+            server.port,
+            server.user.clone(),
+            server.ssh_key_path.clone(),
         )
     };
 
@@ -181,42 +181,42 @@ pub async fn test_vps_connection(
 
     // Update status
     {
-        let mut config = state.vps_config.lock().await;
-        if let Some(vps) = config.get_mut(&id) {
-            vps.status = if online {
-                VpsStatus::Online
+        let mut config = state.server_config.lock().await;
+        if let Some(server) = config.get_mut(&id) {
+            server.status = if online {
+                ServerStatus::Online
             } else {
-                VpsStatus::Offline
+                ServerStatus::Offline
             };
-            vps.last_seen = Utc::now().to_rfc3339();
+            server.last_seen = Utc::now().to_rfc3339();
         }
 
         let store = state.config.lock().await;
         store
-            .save("vps.json", &*config)
-            .map_err(|e| format!("Failed to save VPS config: {}", e))?;
+            .save("servers.json", &*config)
+            .map_err(|e| format!("Failed to save server config: {}", e))?;
     }
 
     Ok(online)
 }
 
-/// Run a capability probe on the remote VPS and save the result to `probes/<id>.json`.
+/// Run a capability probe on the remote server and save the result to `probes/<id>.json`.
 #[tauri::command]
-pub async fn probe_vps(
+pub async fn probe_server(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<ProbeResult, String> {
     // Read connection details
     let (host, port, user, key_path) = {
-        let config = state.vps_config.lock().await;
-        let vps = config
+        let config = state.server_config.lock().await;
+        let server = config
             .get(&id)
-            .ok_or_else(|| format!("VPS '{}' not found", id))?;
+            .ok_or_else(|| format!("Server '{}' not found", id))?;
         (
-            vps.host.clone(),
-            vps.port,
-            vps.user.clone(),
-            vps.ssh_key_path.clone(),
+            server.host.clone(),
+            server.port,
+            server.user.clone(),
+            server.ssh_key_path.clone(),
         )
     };
 
@@ -238,10 +238,10 @@ pub async fn probe_vps(
             .map_err(|e| format!("Failed to serialise probe result: {}", e))?;
         let probe_path = probes_dir.join(format!("{}.json", id));
 
-        // Guard against path traversal via crafted VPS ID
+        // Guard against path traversal via crafted server ID
         if !probe_path.starts_with(&probes_dir) {
             return Err(format!(
-                "Invalid VPS ID '{}': results in path traversal",
+                "Invalid server ID '{}': results in path traversal",
                 id
             ));
         }
@@ -250,18 +250,18 @@ pub async fn probe_vps(
             .map_err(|e| format!("Failed to write probe file: {}", e))?;
     }
 
-    // Mark VPS as online since the probe succeeded
+    // Mark server as online since the probe succeeded
     {
-        let mut config = state.vps_config.lock().await;
-        if let Some(vps) = config.get_mut(&id) {
-            vps.status = VpsStatus::Online;
-            vps.last_seen = Utc::now().to_rfc3339();
+        let mut config = state.server_config.lock().await;
+        if let Some(server) = config.get_mut(&id) {
+            server.status = ServerStatus::Online;
+            server.last_seen = Utc::now().to_rfc3339();
         }
 
         let store = state.config.lock().await;
         store
-            .save("vps.json", &*config)
-            .map_err(|e| format!("Failed to save VPS config: {}", e))?;
+            .save("servers.json", &*config)
+            .map_err(|e| format!("Failed to save server config: {}", e))?;
     }
 
     Ok(probe)

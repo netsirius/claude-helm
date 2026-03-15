@@ -1,25 +1,25 @@
 import { useState } from "react";
 import { X } from "lucide-react";
-import { useVpsStore } from "../../stores/vpsStore";
-import type { Vps } from "../../stores/vpsStore";
+import { useServerStore } from "../../stores/serverStore";
+import type { Server } from "../../stores/serverStore";
 
-interface EditVpsDialogProps {
+interface EditServerDialogProps {
   open: boolean;
   onClose: () => void;
-  vps: Vps;
+  server: Server;
 }
 
-export default function EditVpsDialog({ open, onClose, vps }: EditVpsDialogProps) {
-  const update = useVpsStore((s) => s.update);
+export default function EditServerDialog({ open, onClose, server }: EditServerDialogProps) {
+  const update = useServerStore((s) => s.update);
   const [submitting, setSubmitting] = useState(false);
 
-  const [name, setName] = useState(vps.name);
-  const [host, setHost] = useState(vps.host);
-  const [user, setUser] = useState(vps.user);
-  const [sshKeyPath, setSshKeyPath] = useState(vps.sshKeyPath);
-  const [port, setPort] = useState(String(vps.port));
-  const [tags, setTags] = useState(vps.tags.join(", "));
-  const [group, setGroup] = useState(vps.group);
+  const [name, setName] = useState(server.name);
+  const [host, setHost] = useState(server.host);
+  const [user, setUser] = useState(server.user);
+  const [sshKeyPath, setSshKeyPath] = useState(server.sshKeyPath);
+  const [port, setPort] = useState(String(server.port));
+  const [tags, setTags] = useState(server.tags.join(", "));
+  const [group, setGroup] = useState(server.group);
 
   if (!open) return null;
 
@@ -27,7 +27,7 @@ export default function EditVpsDialog({ open, onClose, vps }: EditVpsDialogProps
     e.preventDefault();
     setSubmitting(true);
     try {
-      await update(vps.id, {
+      await update(server.id, {
         name: name.trim(),
         host: host.trim(),
         user: user.trim(),
@@ -56,7 +56,7 @@ export default function EditVpsDialog({ open, onClose, vps }: EditVpsDialogProps
       />
       <div className="relative bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-white">Edit VPS</h2>
+          <h2 className="text-lg font-semibold text-white">Edit Server</h2>
           <button
             onClick={onClose}
             className="text-zinc-400 hover:text-white transition-colors"

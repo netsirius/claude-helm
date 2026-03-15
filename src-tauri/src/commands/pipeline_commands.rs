@@ -259,7 +259,7 @@ pub async fn cancel_pipeline(
 
 /// Start executing a pipeline in the background.
 ///
-/// Validates agents and VPS assignments, performs a topological sort of steps,
+/// Validates agents and server assignments, performs a topological sort of steps,
 /// then spawns a tokio task that executes each step sequentially.
 #[tauri::command]
 pub async fn execute_pipeline(
@@ -292,8 +292,8 @@ pub async fn execute_pipeline(
         (order, map)
     };
 
-    // Validate all agents exist and have assigned VPS
-    let agent_vps_map: HashMap<String, (String, String)> = {
+    // Validate all agents exist and have assigned server
+    let agent_server_map: HashMap<String, (String, String)> = {
         let agents_config = state.agents_config.lock().await;
 
         let mut avmap = HashMap::new();
@@ -304,16 +304,16 @@ pub async fn execute_pipeline(
             let agent = agents_config
                 .get(&step.agent_id)
                 .ok_or_else(|| format!("Agent '{}' not found", step.agent_id))?;
-            let vps_id = agent
-                .assigned_vps_id
+            let server_id = agent
+                .assigned_server_id
                 .as_ref()
-                .ok_or_else(|| format!("Agent '{}' has no assigned VPS", agent.name))?;
-            // Store (vps_id, session_name_or_prefix)
+                .ok_or_else(|| format!("Agent '{}' has no assigned server", agent.name))?;
+            // Store (server_id, session_name_or_prefix)
             let session_name = agent
                 .current_session_id
                 .clone()
                 .unwrap_or_else(|| format!("cm-{}", step.agent_id.chars().take(8).collect::<String>()));
-            avmap.insert(step.agent_id.clone(), (vps_id.clone(), session_name));
+            avmap.insert(step.agent_id.clone(), (server_id.clone(), session_name));
         }
         avmap
     };
@@ -340,7 +340,7 @@ pub async fn execute_pipeline(
     // ── 3. Clone state arcs for the background task ──────────────────────
     let pipelines_config = Arc::clone(&state.pipelines_config);
     let config_store = Arc::clone(&state.config);
-    let vps_config = Arc::clone(&state.vps_config);
+    let server_config = Arc::clone(&state.server_config);
     let ssh_pool = Arc::clone(&state.ssh_pool);
     let cancel_flags = Arc::clone(&CANCEL_FLAGS);
     let pid = pipeline_id.clone();
@@ -392,8 +392,8 @@ pub async fn execute_pipeline(
                 }
             }
 
-            // Get SSH handle for the agent's VPS
-            let (vps_id, session_name) = match agent_vps_map.get(&step.agent_id) {
+            // Get SSH handle for the agent's server
+            let (server_id, session_name) = match agent_server_map.get(&step.agent_id) {
                 Some(pair) => pair.clone(),
                 None => {
                     mark_step_failed(&pipelines_config, &config_store, &pid, step_id).await;
@@ -404,13 +404,13 @@ pub async fn execute_pipeline(
 
             let handle = {
                 let (host, port, user, key_path) = {
-                    let vc = vps_config.lock().await;
-                    match vc.get(&vps_id) {
-                        Some(vps) => (
-                            vps.host.clone(),
-                            vps.port,
-                            vps.user.clone(),
-                            vps.ssh_key_path.clone(),
+                    let vc = server_config.lock().await;
+                    match vc.get(&server_id) {
+                        Some(srv) => (
+                            srv.host.clone(),
+                            srv.port,
+                            srv.user.clone(),
+                            srv.ssh_key_path.clone(),
                         ),
                         None => {
                             mark_step_failed(&pipelines_config, &config_store, &pid, step_id)
@@ -422,7 +422,7 @@ pub async fn execute_pipeline(
                 };
 
                 match ssh_pool
-                    .get_or_connect(&vps_id, &host, port, &user, &key_path)
+                    .get_or_connect(&server_id, &host, port, &user, &key_path)
                     .await
                 {
                     Ok(h) => h,
@@ -454,7 +454,7 @@ pub async fn execute_pipeline(
                 break;
             }
 
-            // Write prompt to temp file on VPS then send to Claude via tmux
+            // Write prompt to temp file on server then send to Claude via tmux
             let escaped_prompt = prompt.replace('\'', "'\\''");
             let write_cmd = format!(
                 "printf '%s' '{}' > /tmp/cm-step-{}.txt",

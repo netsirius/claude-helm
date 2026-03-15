@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { RefreshCw, Puzzle, ChevronDown, AlertTriangle } from "lucide-react";
-import { useVpsStore } from "../stores/vpsStore";
+import { useServerStore } from "../stores/serverStore";
 import { tauriInvoke } from "../lib/tauri";
 
 interface Extension {
@@ -19,8 +19,8 @@ const TABS = [
 ];
 
 export default function Extensions() {
-  const { servers, fetch: fetchVps } = useVpsStore();
-  const [selectedVpsId, setSelectedVpsId] = useState<string | null>(null);
+  const { servers, fetch: fetchServers } = useServerStore();
+  const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
   const [extensions, setExtensions] = useState<Extension[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,15 +28,15 @@ export default function Extensions() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
-    fetchVps();
-  }, [fetchVps]);
+    fetchServers();
+  }, [fetchServers]);
 
-  const loadExtensions = async (vpsId: string) => {
+  const loadExtensions = async (serverId: string) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await tauriInvoke<Extension[]>("list_vps_extensions", {
-        vpsId,
+      const result = await tauriInvoke<Extension[]>("list_server_extensions", {
+        serverId,
       });
       setExtensions(result);
     } catch (err) {
@@ -53,13 +53,13 @@ export default function Extensions() {
     }
   };
 
-  const handleSelectVps = (vpsId: string) => {
-    setSelectedVpsId(vpsId);
+  const handleSelectServer = (serverId: string) => {
+    setSelectedServerId(serverId);
     setDropdownOpen(false);
-    loadExtensions(vpsId);
+    loadExtensions(serverId);
   };
 
-  const selectedVps = servers.find((s) => s.id === selectedVpsId);
+  const selectedServer = servers.find((s) => s.id === selectedServerId);
   const filtered = extensions.filter((e) => e.extType === activeTab);
 
   return (
@@ -69,14 +69,14 @@ export default function Extensions() {
         <h1 className="text-2xl font-bold text-white">Extensions</h1>
 
         <div className="flex items-center gap-3">
-          {/* VPS Selector */}
+          {/* Server Selector */}
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 transition-colors min-w-[180px] justify-between"
             >
               <span className="truncate">
-                {selectedVps ? selectedVps.name : "Select VPS..."}
+                {selectedServer ? selectedServer.name : "Select server..."}
               </span>
               <ChevronDown size={14} className="flex-shrink-0 text-zinc-500" />
             </button>
@@ -85,23 +85,23 @@ export default function Extensions() {
               <div className="absolute right-0 mt-2 w-64 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl z-50 overflow-hidden">
                 {servers.length === 0 ? (
                   <div className="px-4 py-3 text-sm text-zinc-400">
-                    No VPS servers configured
+                    No servers configured
                   </div>
                 ) : (
-                  servers.map((vps) => (
+                  servers.map((server) => (
                     <button
-                      key={vps.id}
-                      onClick={() => handleSelectVps(vps.id)}
+                      key={server.id}
+                      onClick={() => handleSelectServer(server.id)}
                       className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-800 transition-colors ${
-                        vps.id === selectedVpsId ? "bg-zinc-800/50" : ""
+                        server.id === selectedServerId ? "bg-zinc-800/50" : ""
                       }`}
                     >
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-white truncate">
-                          {vps.name}
+                          {server.name}
                         </div>
                         <div className="text-xs text-zinc-500 truncate">
-                          {vps.host}
+                          {server.host}
                         </div>
                       </div>
                     </button>
@@ -113,8 +113,8 @@ export default function Extensions() {
 
           {/* Refresh */}
           <button
-            onClick={() => selectedVpsId && loadExtensions(selectedVpsId)}
-            disabled={!selectedVpsId || loading}
+            onClick={() => selectedServerId && loadExtensions(selectedServerId)}
+            disabled={!selectedServerId || loading}
             className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-50"
             title="Refresh"
           >
@@ -137,17 +137,17 @@ export default function Extensions() {
         </div>
       )}
 
-      {/* No VPS selected */}
-      {!selectedVpsId ? (
+      {/* No server selected */}
+      {!selectedServerId ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="p-4 bg-zinc-900 rounded-2xl mb-4">
             <Puzzle size={32} className="text-zinc-500" />
           </div>
           <h2 className="text-lg font-semibold text-white mb-1">
-            Select a VPS
+            Select a server
           </h2>
           <p className="text-sm text-zinc-400">
-            Choose a VPS server to view its installed extensions.
+            Choose a server to view its installed extensions.
           </p>
         </div>
       ) : (
@@ -178,7 +178,7 @@ export default function Extensions() {
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <p className="text-sm text-zinc-400">
                 No {TABS.find((t) => t.key === activeTab)?.label.toLowerCase()}{" "}
-                found on this VPS.
+                found on this server.
               </p>
             </div>
           ) : (

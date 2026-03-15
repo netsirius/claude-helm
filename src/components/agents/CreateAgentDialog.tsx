@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { useAgentStore } from "../../stores/agentStore";
-import type { Vps } from "../../stores/vpsStore";
+import type { Server } from "../../stores/serverStore";
 
 interface CreateAgentDialogProps {
   open: boolean;
   onClose: () => void;
-  vpsList: Vps[];
+  serverList: Server[];
 }
 
 const ICONS = [
@@ -40,7 +40,7 @@ const MODELS = [
 export default function CreateAgentDialog({
   open,
   onClose,
-  vpsList,
+  serverList,
 }: CreateAgentDialogProps) {
   const add = useAgentStore((s) => s.add);
   const [submitting, setSubmitting] = useState(false);
@@ -50,7 +50,7 @@ export default function CreateAgentDialog({
   const [icon, setIcon] = useState(ICONS[0]);
   const [color, setColor] = useState(COLORS[0]);
   const [model, setModel] = useState(MODELS[0].value);
-  const [vpsId, setVpsId] = useState("");
+  const [serverId, setServerId] = useState("");
 
   if (!open) return null;
 
@@ -62,7 +62,7 @@ export default function CreateAgentDialog({
         icon,
         color,
         defaultModel: model,
-        assignedVpsId: vpsId || undefined,
+        assignedServerId: serverId || undefined,
       });
       resetAndClose();
     } finally {
@@ -76,7 +76,7 @@ export default function CreateAgentDialog({
     setIcon(ICONS[0]);
     setColor(COLORS[0]);
     setModel(MODELS[0].value);
-    setVpsId("");
+    setServerId("");
     onClose();
   };
 
@@ -190,18 +190,18 @@ export default function CreateAgentDialog({
             </select>
           </div>
 
-          {/* VPS selector */}
+          {/* Server selector */}
           <div>
             <label className="block text-xs font-medium text-zinc-400 mb-1">
-              VPS
+              Server
             </label>
             <select
-              value={vpsId}
-              onChange={(e) => setVpsId(e.target.value)}
+              value={serverId}
+              onChange={(e) => setServerId(e.target.value)}
               className={inputClass}
             >
               <option value="">None (assign later)</option>
-              {vpsList.map((v) => (
+              {serverList.map((v) => (
                 <option key={v.id} value={v.id}>
                   {v.name} ({v.host})
                 </option>

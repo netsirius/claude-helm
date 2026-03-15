@@ -45,13 +45,13 @@ export default function LiveMonitor() {
   const availableAgents = agents.filter(
     (a) =>
       a.currentSessionId &&
-      a.currentVpsId &&
+      a.currentServerId &&
       !monitored.some((m) => m.agentId === a.id),
   );
 
   const handleAdd = (agent: Agent) => {
-    if (agent.currentSessionId && agent.currentVpsId) {
-      addMonitor(agent.id, agent.currentVpsId, agent.currentSessionId);
+    if (agent.currentSessionId && agent.currentServerId) {
+      addMonitor(agent.id, agent.currentServerId, agent.currentSessionId);
     }
     setShowPicker(false);
   };

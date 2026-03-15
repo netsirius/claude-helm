@@ -33,12 +33,12 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            commands::vps_commands::list_vps,
-            commands::vps_commands::add_vps,
-            commands::vps_commands::update_vps,
-            commands::vps_commands::remove_vps,
-            commands::vps_commands::test_vps_connection,
-            commands::vps_commands::probe_vps,
+            commands::server_commands::list_servers,
+            commands::server_commands::add_server,
+            commands::server_commands::update_server,
+            commands::server_commands::remove_server,
+            commands::server_commands::test_server_connection,
+            commands::server_commands::probe_server,
             commands::agent_commands::list_agents,
             commands::agent_commands::add_agent,
             commands::agent_commands::remove_agent,
@@ -46,7 +46,7 @@ pub fn run() {
             commands::session_commands::create_session,
             commands::session_commands::stop_session,
             commands::session_commands::capture_session_output,
-            commands::extension_commands::list_vps_extensions,
+            commands::extension_commands::list_server_extensions,
             commands::pipeline_commands::list_pipelines,
             commands::pipeline_commands::create_pipeline,
             commands::pipeline_commands::add_pipeline_step,

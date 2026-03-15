@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { X } from "lucide-react";
-import { useVpsStore } from "../../stores/vpsStore";
+import { useServerStore } from "../../stores/serverStore";
 
-interface AddVpsDialogProps {
+interface AddServerDialogProps {
   open: boolean;
   onClose: () => void;
 }
 
-export default function AddVpsDialog({ open, onClose }: AddVpsDialogProps) {
-  const add = useVpsStore((s) => s.add);
+export default function AddServerDialog({ open, onClose }: AddServerDialogProps) {
+  const add = useServerStore((s) => s.add);
   const [submitting, setSubmitting] = useState(false);
 
   const [name, setName] = useState("");
@@ -65,7 +65,7 @@ export default function AddVpsDialog({ open, onClose }: AddVpsDialogProps) {
       />
       <div className="relative bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-white">Add VPS</h2>
+          <h2 className="text-lg font-semibold text-white">Add Server</h2>
           <button
             onClick={resetAndClose}
             className="text-zinc-400 hover:text-white transition-colors"
@@ -175,7 +175,7 @@ export default function AddVpsDialog({ open, onClose }: AddVpsDialogProps) {
               disabled={submitting || !name.trim() || !host.trim()}
               className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50"
             >
-              {submitting ? "Adding..." : "Add VPS"}
+              {submitting ? "Adding..." : "Add Server"}
             </button>
           </div>
         </form>

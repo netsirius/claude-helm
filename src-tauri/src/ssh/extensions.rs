@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::commands::exec_command;
 use super::connection::SharedHandle;
 
-/// Type of extension discovered on a remote VPS.
+/// Type of extension discovered on a remote server.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ExtensionType {
@@ -13,7 +13,7 @@ pub enum ExtensionType {
     Agent,
 }
 
-/// A discovered extension on a remote VPS.
+/// A discovered extension on a remote server.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Extension {
@@ -24,7 +24,7 @@ pub struct Extension {
     pub config: serde_json::Value,
 }
 
-/// Discover extensions installed on the remote VPS.
+/// Discover extensions installed on the remote server.
 ///
 /// Checks two sources:
 /// 1. `~/.claude/settings.json` — parses `mcpServers` key for MCP extensions

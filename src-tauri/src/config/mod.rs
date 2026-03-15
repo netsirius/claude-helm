@@ -1,4 +1,4 @@
-pub mod vps;
+pub mod server;
 pub mod agents;
 pub mod pipelines;
 
@@ -42,6 +42,29 @@ impl ConfigStore {
         }
     }
 
+    /// Load a config file with backward-compatible migration.
+    ///
+    /// If `filename` does not exist but `fallback` does, loads from the fallback
+    /// path instead.  This supports renaming config files (e.g. vps.json -> servers.json)
+    /// without losing existing data.
+    pub fn load_with_fallback<T: DeserializeOwned + Default>(
+        &self,
+        filename: &str,
+        fallback: &str,
+    ) -> T {
+        let path = self.base_dir.join(filename);
+        if path.exists() {
+            return self.load(filename);
+        }
+
+        let fallback_path = self.base_dir.join(fallback);
+        if fallback_path.exists() {
+            return self.load(fallback);
+        }
+
+        T::default()
+    }
+
     pub fn save<T: Serialize>(&self, filename: &str, data: &T) -> std::io::Result<()> {
         let path = self.base_dir.join(filename);
         let tmp_path = self.base_dir.join(format!("{}.tmp", filename));
@@ -72,7 +95,7 @@ impl Default for ConfigStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::vps::{Vps, VpsConfig};
+    use super::server::{Server, ServerConfig};
 
     #[test]
     fn test_config_store_init() {
@@ -83,7 +106,7 @@ mod tests {
     #[test]
     fn test_load_missing_file_returns_default() {
         let store = ConfigStore::new().unwrap();
-        let config: VpsConfig = store.load("nonexistent_test_file.json");
+        let config: ServerConfig = store.load("nonexistent_test_file.json");
         assert_eq!(config.schema_version, 1);
         assert!(config.servers.is_empty());
     }
@@ -91,10 +114,10 @@ mod tests {
     #[test]
     fn test_save_and_load_roundtrip() {
         let store = ConfigStore::new().unwrap();
-        let test_file = "test_roundtrip_vps.json";
+        let test_file = "test_roundtrip_servers.json";
 
-        let mut config = VpsConfig::new();
-        config.add(Vps::new(
+        let mut config = ServerConfig::new();
+        config.add(Server::new(
             "roundtrip-server".to_string(),
             "10.0.0.1".to_string(),
             "admin".to_string(),
@@ -103,7 +126,7 @@ mod tests {
 
         store.save(test_file, &config).unwrap();
 
-        let loaded: VpsConfig = store.load(test_file);
+        let loaded: ServerConfig = store.load(test_file);
         assert_eq!(loaded.servers.len(), 1);
         assert_eq!(loaded.servers[0].name, "roundtrip-server");
 
@@ -119,7 +142,7 @@ mod tests {
         let store = ConfigStore::new().unwrap();
         let test_file = "test_permissions.json";
 
-        let config = VpsConfig::new();
+        let config = ServerConfig::new();
         store.save(test_file, &config).unwrap();
 
         let path = store.base_dir().join(test_file);

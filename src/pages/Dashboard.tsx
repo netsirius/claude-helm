@@ -1,42 +1,42 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Server, Wifi, WifiOff, Bot } from "lucide-react";
-import { useVpsStore } from "../stores/vpsStore";
+import { useServerStore } from "../stores/serverStore";
 import { useAgentStore } from "../stores/agentStore";
 
 export default function Dashboard() {
-  const { servers, fetch: fetchVps } = useVpsStore();
+  const { servers, fetch: fetchServers } = useServerStore();
   const { agents, fetch: fetchAgents } = useAgentStore();
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchVps();
+    fetchServers();
     fetchAgents();
-  }, [fetchVps, fetchAgents]);
+  }, [fetchServers, fetchAgents]);
 
-  const totalVps = servers.length;
-  const onlineVps = servers.filter((s) => s.status === "online").length;
-  const offlineVps = servers.filter((s) => s.status === "offline").length;
+  const totalServers = servers.length;
+  const onlineServers = servers.filter((s) => s.status === "online").length;
+  const offlineServers = servers.filter((s) => s.status === "offline").length;
   const activeAgents = agents.filter((a) => a.currentSessionId !== null).length;
 
   const stats = [
     {
-      label: "Total VPS",
-      value: totalVps,
+      label: "Total Servers",
+      value: totalServers,
       icon: Server,
       color: "text-blue-400",
       bg: "bg-blue-400/10",
     },
     {
       label: "Online",
-      value: onlineVps,
+      value: onlineServers,
       icon: Wifi,
       color: "text-emerald-400",
       bg: "bg-emerald-400/10",
     },
     {
       label: "Offline",
-      value: offlineVps,
+      value: offlineServers,
       icon: WifiOff,
       color: "text-red-400",
       bg: "bg-red-400/10",

@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Play, Square, Copy, Trash2, Loader2 } from "lucide-react";
 import type { Agent } from "../../stores/agentStore";
-import type { Vps } from "../../stores/vpsStore";
+import type { Server } from "../../stores/serverStore";
 
 interface AgentCardProps {
   agent: Agent;
-  vps: Vps | undefined;
+  server: Server | undefined;
   onStart: (agent: Agent) => Promise<void>;
   onStop: (agent: Agent) => Promise<void>;
-  onOpen: (agent: Agent, vps: Vps) => void;
+  onOpen: (agent: Agent, server: Server) => void;
   onDelete: (agent: Agent) => Promise<void>;
 }
 
@@ -42,7 +42,7 @@ function getAgentStatus(agent: Agent): string {
 
 export default function AgentCard({
   agent,
-  vps,
+  server,
   onStart,
   onStop,
   onOpen,
@@ -101,9 +101,9 @@ export default function AgentCard({
             {agent.defaultModel.split("-").slice(0, 2).join("-")}
           </span>
         </span>
-        {vps && (
+        {server && (
           <span>
-            VPS: <span className="text-zinc-300">{vps.name}</span>
+            Server: <span className="text-zinc-300">{server.name}</span>
           </span>
         )}
       </div>
@@ -140,9 +140,9 @@ export default function AgentCard({
               Stop
             </button>
 
-            {vps && (
+            {server && (
               <button
-                onClick={() => onOpen(agent, vps)}
+                onClick={() => onOpen(agent, server)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors"
               >
                 <Copy size={14} />

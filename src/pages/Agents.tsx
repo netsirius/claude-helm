@@ -1,27 +1,27 @@
 import { useEffect, useState } from "react";
 import { Plus, RefreshCw, Bot } from "lucide-react";
 import { useAgentStore, type Agent } from "../stores/agentStore";
-import { useVpsStore, type Vps } from "../stores/vpsStore";
+import { useServerStore, type Server } from "../stores/serverStore";
 import { tauriInvoke } from "../lib/tauri";
 import AgentCard from "../components/agents/AgentCard";
 import CreateAgentDialog from "../components/agents/CreateAgentDialog";
 
 export default function Agents() {
   const { agents, loading, fetch: fetchAgents } = useAgentStore();
-  const { servers, fetch: fetchVps } = useVpsStore();
+  const { servers, fetch: fetchServers } = useServerStore();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchAgents();
-    fetchVps();
-  }, [fetchAgents, fetchVps]);
+    fetchServers();
+  }, [fetchAgents, fetchServers]);
 
-  const vpsMap = new Map(servers.map((v) => [v.id, v]));
+  const serverMap = new Map(servers.map((v) => [v.id, v]));
 
   const handleStart = async (agent: Agent) => {
-    const vpsId = agent.assignedVpsId;
-    if (!vpsId) {
-      alert("Assign a VPS to this agent before starting a session.");
+    const serverId = agent.assignedServerId;
+    if (!serverId) {
+      alert("Assign a server to this agent before starting a session.");
       return;
     }
 
@@ -29,11 +29,11 @@ export default function Agents() {
     const model = agent.defaultModel || undefined;
 
     try {
-      // Ensure VPS has been probed (needed to find claude binary path)
-      await tauriInvoke("probe_vps", { id: vpsId });
+      // Ensure server has been probed (needed to find claude binary path)
+      await tauriInvoke("probe_server", { id: serverId });
 
       await tauriInvoke<string>("create_session", {
-        vpsId,
+        serverId,
         agentId: agent.id,
         workingDir: workingDir,
         model,
@@ -45,11 +45,11 @@ export default function Agents() {
   };
 
   const handleStop = async (agent: Agent) => {
-    if (!agent.currentSessionId || !agent.currentVpsId) return;
+    if (!agent.currentSessionId || !agent.currentServerId) return;
 
     try {
       await tauriInvoke<null>("stop_session", {
-        vpsId: agent.currentVpsId,
+        serverId: agent.currentServerId,
         sessionId: agent.currentSessionId,
       });
       await fetchAgents();
@@ -58,9 +58,9 @@ export default function Agents() {
     }
   };
 
-  const handleOpen = (agent: Agent, vps: Vps) => {
+  const handleOpen = (agent: Agent, server: Server) => {
     if (!agent.currentSessionId) return;
-    const cmd = `ssh ${vps.user}@${vps.host} -p ${vps.port} -t 'tmux attach -t ${agent.currentSessionId}'`;
+    const cmd = `ssh ${server.user}@${server.host} -p ${server.port} -t 'tmux attach -t ${agent.currentSessionId}'`;
     navigator.clipboard.writeText(cmd).then(() => {
       alert("SSH command copied to clipboard!");
     });
@@ -68,10 +68,10 @@ export default function Agents() {
 
   const handleDelete = async (agent: Agent) => {
     // Stop session first if running
-    if (agent.currentSessionId && agent.currentVpsId) {
+    if (agent.currentSessionId && agent.currentServerId) {
       try {
         await tauriInvoke<null>("stop_session", {
-          vpsId: agent.currentVpsId,
+          serverId: agent.currentServerId,
           sessionId: agent.currentSessionId,
         });
       } catch {
@@ -117,7 +117,7 @@ export default function Agents() {
             Create your first agent
           </h2>
           <p className="text-sm text-zinc-400 mb-4">
-            Agents represent Claude instances running on your VPS servers.
+            Agents represent Claude instances running on your servers.
           </p>
           <button
             onClick={() => setDialogOpen(true)}
@@ -133,9 +133,9 @@ export default function Agents() {
             <AgentCard
               key={agent.id}
               agent={agent}
-              vps={
-                vpsMap.get(agent.currentVpsId ?? "") ??
-                vpsMap.get(agent.assignedVpsId ?? "")
+              server={
+                serverMap.get(agent.currentServerId ?? "") ??
+                serverMap.get(agent.assignedServerId ?? "")
               }
               onStart={handleStart}
               onStop={handleStop}
@@ -149,7 +149,7 @@ export default function Agents() {
       <CreateAgentDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        vpsList={servers}
+        serverList={servers}
       />
     </div>
   );

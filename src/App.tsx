@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
-import VpsManager from "./pages/VpsManager";
+import ServerManager from "./pages/ServerManager";
 import Agents from "./pages/Agents";
 import LiveMonitor from "./pages/LiveMonitor";
 import Extensions from "./pages/Extensions";
@@ -15,7 +15,7 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/vps" element={<VpsManager />} />
+          <Route path="/servers" element={<ServerManager />} />
           <Route path="/agents" element={<Agents />} />
           <Route path="/monitor" element={<LiveMonitor />} />
           <Route path="/extensions" element={<Extensions />} />

@@ -2,11 +2,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { useActivityStore } from "../stores/activityStore";
 
 const LOGGED_COMMANDS = [
-  "add_vps",
-  "remove_vps",
-  "update_vps",
-  "test_vps_connection",
-  "probe_vps",
+  "add_server",
+  "remove_server",
+  "update_server",
+  "test_server_connection",
+  "probe_server",
   "add_agent",
   "remove_agent",
   "create_session",
@@ -14,7 +14,7 @@ const LOGGED_COMMANDS = [
   "create_pipeline",
   "delete_pipeline",
   "add_pipeline_step",
-  "list_vps_extensions",
+  "list_server_extensions",
   "execute_pipeline",
   "cancel_pipeline",
 ];
@@ -27,7 +27,7 @@ export async function tauriInvoke<T>(
     const result = await invoke<T>(cmd, args);
     if (LOGGED_COMMANDS.includes(cmd)) {
       useActivityStore.getState().add({
-        vpsName: (args?.name as string) || (args?.vpsId as string) || (args?.id as string) || "-",
+        serverName: (args?.name as string) || (args?.serverId as string) || (args?.id as string) || "-",
         command: cmd,
         status: "success",
       });
@@ -36,7 +36,7 @@ export async function tauriInvoke<T>(
   } catch (e) {
     if (LOGGED_COMMANDS.includes(cmd)) {
       useActivityStore.getState().add({
-        vpsName: (args?.name as string) || (args?.vpsId as string) || (args?.id as string) || "-",
+        serverName: (args?.name as string) || (args?.serverId as string) || (args?.id as string) || "-",
         command: cmd,
         status: "failure",
         error: String(e),

@@ -112,7 +112,7 @@ struct PooledConnection {
     last_used: Instant,
 }
 
-/// Connection pool that reuses SSH sessions keyed by VPS ID.
+/// Connection pool that reuses SSH sessions keyed by server ID.
 pub struct SshPool {
     connections: Arc<Mutex<HashMap<String, PooledConnection>>>,
     idle_timeout: Duration,
@@ -130,12 +130,12 @@ impl SshPool {
         }
     }
 
-    /// Return an existing connection for `vps_id`, or create a new one.
+    /// Return an existing connection for `server_id`, or create a new one.
     ///
     /// Uses public-key authentication with the private key at `key_path`.
     pub async fn get_or_connect(
         &self,
-        vps_id: &str,
+        server_id: &str,
         host: &str,
         port: u16,
         user: &str,
@@ -144,7 +144,7 @@ impl SshPool {
         let mut conns = self.connections.lock().await;
 
         // Return existing connection if it's still open
-        if let Some(pooled) = conns.get_mut(vps_id) {
+        if let Some(pooled) = conns.get_mut(server_id) {
             let handle_guard = pooled.handle.lock().await;
             if !handle_guard.is_closed() {
                 drop(handle_guard);
@@ -153,7 +153,7 @@ impl SshPool {
             }
             drop(handle_guard);
             // Connection is closed; remove stale entry and reconnect below
-            conns.remove(vps_id);
+            conns.remove(server_id);
         }
 
         // Expand tilde in key path to the user's home directory
@@ -194,7 +194,7 @@ impl SshPool {
         let shared = Arc::new(Mutex::new(handle));
 
         conns.insert(
-            vps_id.to_string(),
+            server_id.to_string(),
             PooledConnection {
                 handle: Arc::clone(&shared),
                 last_used: Instant::now(),
@@ -204,10 +204,10 @@ impl SshPool {
         Ok(shared)
     }
 
-    /// Close and remove the connection for a specific VPS.
-    pub async fn disconnect(&self, vps_id: &str) -> Result<(), String> {
+    /// Close and remove the connection for a specific server.
+    pub async fn disconnect(&self, server_id: &str) -> Result<(), String> {
         let mut conns = self.connections.lock().await;
-        if let Some(pooled) = conns.remove(vps_id) {
+        if let Some(pooled) = conns.remove(server_id) {
             let handle = pooled.handle.lock().await;
             handle
                 .disconnect(Disconnect::ByApplication, "user requested disconnect", "")

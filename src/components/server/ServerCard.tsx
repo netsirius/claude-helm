@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Server, Trash2, Loader2, Wifi, Pencil } from "lucide-react";
-import type { Vps } from "../../stores/vpsStore";
-import { useVpsStore } from "../../stores/vpsStore";
+import { Server as ServerIcon, Trash2, Loader2, Wifi, Pencil } from "lucide-react";
+import type { Server } from "../../stores/serverStore";
+import { useServerStore } from "../../stores/serverStore";
 
-interface VpsCardProps {
-  vps: Vps;
-  onEdit?: (vps: Vps) => void;
+interface ServerCardProps {
+  server: Server;
+  onEdit?: (server: Server) => void;
 }
 
 const statusColor: Record<string, string> = {
@@ -20,23 +20,23 @@ const statusLabel: Record<string, string> = {
   unknown: "Unknown",
 };
 
-export default function VpsCard({ vps, onEdit }: VpsCardProps) {
+export default function ServerCard({ server, onEdit }: ServerCardProps) {
   const [testing, setTesting] = useState(false);
-  const testConnection = useVpsStore((s) => s.testConnection);
-  const remove = useVpsStore((s) => s.remove);
+  const testConnection = useServerStore((s) => s.testConnection);
+  const remove = useServerStore((s) => s.remove);
 
   const handleTest = async () => {
     setTesting(true);
     try {
-      await testConnection(vps.id);
+      await testConnection(server.id);
     } finally {
       setTesting(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete VPS "${vps.name}"?`)) return;
-    await remove(vps.id);
+    if (!window.confirm(`Are you sure you want to delete server "${server.name}"?`)) return;
+    await remove(server.id);
   };
 
   return (
@@ -44,35 +44,35 @@ export default function VpsCard({ vps, onEdit }: VpsCardProps) {
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-zinc-800 rounded-lg">
-            <Server size={20} className="text-zinc-400" />
+            <ServerIcon size={20} className="text-zinc-400" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white">{vps.name}</h3>
+            <h3 className="text-sm font-semibold text-white">{server.name}</h3>
             <p className="text-xs text-zinc-400">
-              {vps.user}@{vps.host}:{vps.port}
+              {server.user}@{server.host}:{server.port}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5">
           <span
-            className={`inline-block w-2 h-2 rounded-full ${statusColor[vps.status]}`}
+            className={`inline-block w-2 h-2 rounded-full ${statusColor[server.status]}`}
           />
           <span className="text-xs text-zinc-400">
-            {statusLabel[vps.status]}
+            {statusLabel[server.status]}
           </span>
         </div>
       </div>
 
-      {vps.group && (
+      {server.group && (
         <p className="text-xs text-zinc-500">
-          Group: <span className="text-zinc-400">{vps.group}</span>
+          Group: <span className="text-zinc-400">{server.group}</span>
         </p>
       )}
 
-      {vps.tags.length > 0 && (
+      {server.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {vps.tags.map((tag) => (
+          {server.tags.map((tag) => (
             <span
               key={tag}
               className="px-2 py-0.5 text-xs rounded-full bg-zinc-800 text-zinc-300"
@@ -97,7 +97,7 @@ export default function VpsCard({ vps, onEdit }: VpsCardProps) {
           Test
         </button>
         <button
-          onClick={() => onEdit?.(vps)}
+          onClick={() => onEdit?.(server)}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
         >
           <Pencil size={14} />

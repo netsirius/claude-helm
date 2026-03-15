@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::commands::exec_command;
 use super::connection::SharedHandle;
 
-/// Capabilities discovered on a remote VPS by running a probe script.
+/// Capabilities discovered on a remote server by running a probe script.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ProbeResult {
@@ -70,7 +70,7 @@ cat <<ENDJSON
 ENDJSON
 "#;
 
-/// Run the capability probe on a remote VPS via SSH.
+/// Run the capability probe on a remote server via SSH.
 ///
 /// Executes a bash script that checks for Claude CLI, tmux, screen, flock,
 /// and other environment details, returning the parsed result.

@@ -3,14 +3,14 @@ import { tauriInvoke } from "../lib/tauri";
 
 export interface MonitoredAgent {
   agentId: string;
-  vpsId: string;
+  serverId: string;
   sessionId: string;
   output: string;
 }
 
 interface MonitorState {
   monitored: MonitoredAgent[];
-  addMonitor: (agentId: string, vpsId: string, sessionId: string) => void;
+  addMonitor: (agentId: string, serverId: string, sessionId: string) => void;
   removeMonitor: (agentId: string) => void;
   refreshOutput: (agentId: string) => Promise<void>;
   refreshAll: () => Promise<void>;
@@ -21,7 +21,7 @@ const MAX_MONITORS = 4;
 export const useMonitorStore = create<MonitorState>((set, get) => ({
   monitored: [],
 
-  addMonitor: (agentId, vpsId, sessionId) => {
+  addMonitor: (agentId, serverId, sessionId) => {
     const { monitored } = get();
     if (monitored.length >= MAX_MONITORS) return;
     if (monitored.some((m) => m.agentId === agentId)) return;
@@ -29,7 +29,7 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
     set({
       monitored: [
         ...monitored,
-        { agentId, vpsId, sessionId, output: "" },
+        { agentId, serverId, sessionId, output: "" },
       ],
     });
   },
@@ -45,7 +45,7 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
 
     try {
       const output = await tauriInvoke<string>("capture_session_output", {
-        vpsId: entry.vpsId,
+        serverId: entry.serverId,
         sessionId: entry.sessionId,
       });
 

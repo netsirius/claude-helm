@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, RefreshCw, Search, Server } from "lucide-react";
-import { useVpsStore } from "../stores/vpsStore";
-import type { Vps } from "../stores/vpsStore";
-import VpsCard from "../components/vps/VpsCard";
-import AddVpsDialog from "../components/vps/AddVpsDialog";
-import EditVpsDialog from "../components/vps/EditVpsDialog";
+import { useServerStore } from "../stores/serverStore";
+import type { Server as ServerType } from "../stores/serverStore";
+import ServerCard from "../components/server/ServerCard";
+import AddServerDialog from "../components/server/AddServerDialog";
+import EditServerDialog from "../components/server/EditServerDialog";
 
-export default function VpsManager() {
-  const { servers, loading, fetch } = useVpsStore();
+export default function ServerManager() {
+  const { servers, loading, fetch } = useServerStore();
   const [filter, setFilter] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingVps, setEditingVps] = useState<Vps | null>(null);
+  const [editingServer, setEditingServer] = useState<ServerType | null>(null);
 
   useEffect(() => {
     fetch();
@@ -32,12 +32,12 @@ export default function VpsManager() {
     const groups: Record<string, typeof filtered> = {};
     const ungrouped: typeof filtered = [];
 
-    for (const vps of filtered) {
-      if (vps.group) {
-        if (!groups[vps.group]) groups[vps.group] = [];
-        groups[vps.group].push(vps);
+    for (const server of filtered) {
+      if (server.group) {
+        if (!groups[server.group]) groups[server.group] = [];
+        groups[server.group].push(server);
       } else {
-        ungrouped.push(vps);
+        ungrouped.push(server);
       }
     }
 
@@ -49,7 +49,7 @@ export default function VpsManager() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">VPS Manager</h1>
+        <h1 className="text-2xl font-bold text-white">Server Manager</h1>
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search
@@ -76,7 +76,7 @@ export default function VpsManager() {
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
           >
             <Plus size={16} />
-            Add VPS
+            Add Server
           </button>
         </div>
       </div>
@@ -87,7 +87,7 @@ export default function VpsManager() {
             <Server size={32} className="text-zinc-500" />
           </div>
           <h2 className="text-lg font-semibold text-white mb-1">
-            Add your first VPS
+            Add your first server
           </h2>
           <p className="text-sm text-zinc-400 mb-4">
             Connect a remote server to start managing Claude sessions.
@@ -97,27 +97,27 @@ export default function VpsManager() {
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
           >
             <Plus size={16} />
-            Add VPS
+            Add Server
           </button>
         </div>
       ) : (
         <div className="space-y-8">
           {grouped.ungrouped.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {grouped.ungrouped.map((vps) => (
-                <VpsCard key={vps.id} vps={vps} onEdit={setEditingVps} />
+              {grouped.ungrouped.map((server) => (
+                <ServerCard key={server.id} server={server} onEdit={setEditingServer} />
               ))}
             </div>
           )}
 
-          {Object.entries(grouped.groups).map(([groupName, vpsItems]) => (
+          {Object.entries(grouped.groups).map(([groupName, serverItems]) => (
             <div key={groupName}>
               <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">
                 {groupName}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {vpsItems.map((vps) => (
-                  <VpsCard key={vps.id} vps={vps} onEdit={setEditingVps} />
+                {serverItems.map((server) => (
+                  <ServerCard key={server.id} server={server} onEdit={setEditingServer} />
                 ))}
               </div>
             </div>
@@ -125,12 +125,12 @@ export default function VpsManager() {
         </div>
       )}
 
-      <AddVpsDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
-      {editingVps && (
-        <EditVpsDialog
+      <AddServerDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
+      {editingServer && (
+        <EditServerDialog
           open={true}
-          onClose={() => setEditingVps(null)}
-          vps={editingVps}
+          onClose={() => setEditingServer(null)}
+          server={editingServer}
         />
       )}
     </div>

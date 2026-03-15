@@ -3,7 +3,7 @@ import { create } from "zustand";
 export interface ActivityEntry {
   id: string;
   timestamp: string;
-  vpsName: string;
+  serverName: string;
   command: string;
   status: "success" | "failure";
   error?: string;
