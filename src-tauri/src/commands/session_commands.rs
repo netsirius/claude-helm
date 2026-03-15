@@ -310,8 +310,9 @@ pub async fn open_session_terminal(
 
 /// Start remote-control mode for a Claude session and return the generated URL.
 ///
-/// Sends `/remote-control` to the tmux session, waits for Claude to generate
-/// a URL, then captures the pane output and extracts the URL.
+/// If remote-control is already active, extracts the existing URL.
+/// Otherwise sends `/remote-control` and waits for the URL to appear.
+/// Handles the interactive menu that appears when remote-control is already on.
 #[tauri::command]
 pub async fn start_remote_control(
     state: State<'_, AppState>,
@@ -320,39 +321,54 @@ pub async fn start_remote_control(
 ) -> Result<String, String> {
     let handle = get_handle(&state, &remote_id).await?;
 
-    // First check if remote-control is already active by capturing current output
-    let pre_output = sessions::capture_pane(&handle, &session_id, 30).await?;
+    // Check if remote-control is already active by scanning current pane output
+    let pre_output = sessions::capture_pane(&handle, &session_id, 50).await?;
     let pre_clean = strip_ansi(&pre_output);
 
     if let Some(url) = extract_claude_url(&pre_clean) {
+        // Already active — if menu is showing, dismiss it with Enter (selects "Continue")
+        dismiss_rc_menu(&handle, &session_id, &pre_clean).await;
         return Ok(url);
     }
 
-    // Send /remote-control command to the Claude session via tmux
-    let send_cmd = format!(
-        "tmux send-keys -t '{}' '/remote-control' Enter",
-        session_id
-    );
+    // Not active yet — send /remote-control
+    let send_cmd = format!("tmux send-keys -t '{}' '/remote-control' Enter", session_id);
     exec_command(&handle, &send_cmd).await?;
 
-    // Poll for the URL (up to 10 seconds)
+    // Poll for the URL (up to 15 seconds, 3s intervals)
     for _ in 0..5 {
-        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
 
-        let output = sessions::capture_pane(&handle, &session_id, 30).await?;
+        let output = sessions::capture_pane(&handle, &session_id, 50).await?;
         let clean = strip_ansi(&output);
 
         if let Some(url) = extract_claude_url(&clean) {
-            // If a menu appeared (Disconnect/Continue), press Esc to dismiss it
-            if clean.contains("Disconnect this session") || clean.contains("Continue") {
-                let esc_cmd = format!("tmux send-keys -t '{}' Escape", session_id);
-                let _ = exec_command(&handle, &esc_cmd).await;
-            }
+            // Dismiss any menu that appeared
+            dismiss_rc_menu(&handle, &session_id, &clean).await;
             return Ok(url);
         }
     }
 
-    Err("Could not find remote control URL after 10 seconds. Make sure the session is at Claude's idle prompt (❯).".to_string())
+    Err("Could not find remote control URL after 15 seconds. Make sure the session is at Claude's idle prompt (❯).".to_string())
+}
+
+/// Dismiss the remote-control interactive menu if it's showing.
+/// The menu has options: Disconnect / Show QR / Continue.
+/// "Continue" is usually pre-selected, so Enter dismisses it.
+/// If "Enter to select" or "Esc to continue" is visible, we send the right key.
+async fn dismiss_rc_menu(
+    handle: &crate::ssh::connection::SharedHandle,
+    session_id: &str,
+    output: &str,
+) {
+    if output.contains("Disconnect this session")
+        || output.contains("Show QR")
+        || output.contains("Enter to select")
+    {
+        // Send Escape first (safest — "Esc to continue" dismisses without selecting)
+        let cmd = format!("tmux send-keys -t '{}' Escape", session_id);
+        let _ = exec_command(handle, &cmd).await;
+    }
 }
 
 /// Strip ANSI escape codes from a string.
