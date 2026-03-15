@@ -12,6 +12,8 @@ import {
   Bot,
   Settings,
   Puzzle,
+  Package,
+  Plus,
 } from "lucide-react";
 import { tauriInvoke } from "../../lib/tauri";
 import ClaudeSettingsEditor from "./ClaudeSettingsEditor";
@@ -29,7 +31,15 @@ interface RemoteMcp {
 
 interface RemoteSkill {
   name: string;
-  path: string;
+  description: string;
+}
+
+interface RemotePlugin {
+  name: string;
+  version: string;
+  scope: string;
+  installPath: string;
+  installedAt: string;
 }
 
 interface RemoteHook {
@@ -44,7 +54,12 @@ interface RemoteAgent {
   config: unknown;
 }
 
-type TabKey = "mcps" | "skills" | "hooks" | "agents" | "settings";
+interface PluginInstallResult {
+  success: boolean;
+  output: string;
+}
+
+type TabKey = "plugins" | "skills" | "mcps" | "hooks" | "agents" | "settings";
 
 interface RemoteAdminPanelProps {
   open: boolean;
@@ -54,8 +69,9 @@ interface RemoteAdminPanelProps {
 }
 
 const TABS: { key: TabKey; label: string; icon: typeof Server }[] = [
-  { key: "mcps", label: "MCPs", icon: Puzzle },
+  { key: "plugins", label: "Plugins", icon: Package },
   { key: "skills", label: "Skills", icon: Zap },
+  { key: "mcps", label: "MCPs", icon: Puzzle },
   { key: "hooks", label: "Hooks", icon: Webhook },
   { key: "agents", label: "Agents", icon: Bot },
   { key: "settings", label: "Settings", icon: Settings },
@@ -69,13 +85,14 @@ export default function RemoteAdminPanel({
   remoteId,
   remoteName,
 }: RemoteAdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>("mcps");
+  const [activeTab, setActiveTab] = useState<TabKey>("plugins");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Data
   const [mcps, setMcps] = useState<RemoteMcp[]>([]);
   const [skills, setSkills] = useState<RemoteSkill[]>([]);
+  const [plugins, setPlugins] = useState<RemotePlugin[]>([]);
   const [hooks, setHooks] = useState<RemoteHook[]>([]);
   const [agents, setAgents] = useState<RemoteAgent[]>([]);
 
@@ -92,12 +109,12 @@ export default function RemoteAdminPanel({
       setError(null);
       try {
         switch (tab) {
-          case "mcps": {
-            const result = await tauriInvoke<RemoteMcp[]>(
-              "list_remote_mcps",
+          case "plugins": {
+            const result = await tauriInvoke<RemotePlugin[]>(
+              "list_remote_plugins",
               { remoteId },
             );
-            setMcps(result);
+            setPlugins(result);
             break;
           }
           case "skills": {
@@ -106,6 +123,14 @@ export default function RemoteAdminPanel({
               { remoteId },
             );
             setSkills(result);
+            break;
+          }
+          case "mcps": {
+            const result = await tauriInvoke<RemoteMcp[]>(
+              "list_remote_mcps",
+              { remoteId },
+            );
+            setMcps(result);
             break;
           }
           case "hooks": {
@@ -167,9 +192,9 @@ export default function RemoteAdminPanel({
     const label =
       extType === "mcp"
         ? "MCP server"
-        : extType === "skill"
-          ? "skill"
-          : "hook";
+        : extType === "hook"
+          ? "hook"
+          : "extension";
     if (!window.confirm(`Remove ${label} "${name}" from this remote?`)) return;
 
     try {
@@ -291,6 +316,15 @@ export default function RemoteAdminPanel({
                   Open Settings Editor
                 </button>
               </div>
+            ) : activeTab === "plugins" ? (
+              <PluginList
+                plugins={plugins}
+                remoteId={remoteId}
+                onRefresh={() => loadTab("plugins")}
+                onError={setError}
+              />
+            ) : activeTab === "skills" ? (
+              <SkillList skills={skills} />
             ) : activeTab === "mcps" ? (
               <McpList
                 mcps={mcps}
@@ -299,8 +333,6 @@ export default function RemoteAdminPanel({
                 onRemove={handleRemove}
                 onToggleExpand={toggleExpandMcp}
               />
-            ) : activeTab === "skills" ? (
-              <SkillList skills={skills} onRemove={handleRemove} />
             ) : activeTab === "hooks" ? (
               <HookList hooks={hooks} onRemove={handleRemove} />
             ) : activeTab === "agents" ? (
@@ -321,6 +353,218 @@ export default function RemoteAdminPanel({
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
+
+function PluginList({
+  plugins,
+  remoteId,
+  onRefresh,
+  onError,
+}: {
+  plugins: RemotePlugin[];
+  remoteId: string;
+  onRefresh: () => void;
+  onError: (err: string) => void;
+}) {
+  const [showInstall, setShowInstall] = useState(false);
+  const [installInput, setInstallInput] = useState("");
+  const [installing, setInstalling] = useState(false);
+  const [installOutput, setInstallOutput] = useState<{
+    success: boolean;
+    output: string;
+  } | null>(null);
+
+  const handleInstall = async () => {
+    const trimmed = installInput.trim();
+    if (!trimmed) return;
+
+    setInstalling(true);
+    setInstallOutput(null);
+    try {
+      const result = await tauriInvoke<PluginInstallResult>(
+        "install_plugin_on_remote",
+        { remoteId, skillId: trimmed },
+      );
+      setInstallOutput({ success: result.success, output: result.output });
+      if (result.success) {
+        setInstallInput("");
+        // Refresh the plugin list after successful install
+        onRefresh();
+      }
+    } catch (e) {
+      onError(typeof e === "string" ? e : String(e));
+    } finally {
+      setInstalling(false);
+    }
+  };
+
+  const formatDate = (iso: string) => {
+    if (!iso) return "";
+    try {
+      return new Date(iso).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch {
+      return iso;
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Install plugin section */}
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs text-[#b0aea5]/60">
+          Installed plugins from ~/.claude/plugins/installed_plugins.json
+        </p>
+        <button
+          onClick={() => setShowInstall(!showInstall)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors"
+        >
+          <Plus size={14} />
+          Install Plugin
+        </button>
+      </div>
+
+      {/* Install input area */}
+      {showInstall && (
+        <div className="bg-[#141413] border border-[#2a2a28] rounded-xl p-4 space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-[#b0aea5] mb-1.5">
+              Plugin ID (owner/repo format from skills.sh)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={installInput}
+                onChange={(e) => setInstallInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleInstall();
+                }}
+                placeholder="e.g. anthropics/claude-code-skills"
+                className="flex-1 px-3 py-2 text-sm rounded-lg bg-[#1e1e1c] border border-[#2a2a28] text-[#faf9f5] placeholder:text-[#b0aea5]/40 focus:outline-none focus:border-[#d97757]"
+                disabled={installing}
+              />
+              <button
+                onClick={handleInstall}
+                disabled={installing || !installInput.trim()}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50"
+              >
+                {installing ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Package size={14} />
+                )}
+                {installing ? "Installing..." : "Install"}
+              </button>
+            </div>
+            <p className="mt-1.5 text-xs text-[#b0aea5]/40">
+              Uses npx skillsadd to install plugins from skills.sh marketplace
+            </p>
+          </div>
+
+          {/* Install output */}
+          {installOutput && (
+            <div
+              className={`px-3 py-2 rounded-lg text-xs font-mono whitespace-pre-wrap ${
+                installOutput.success
+                  ? "bg-[#788c5d]/10 border border-[#788c5d]/20 text-[#788c5d]"
+                  : "bg-[#c45c4a]/10 border border-[#c45c4a]/20 text-[#c45c4a]"
+              }`}
+            >
+              {installOutput.output}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Plugin list */}
+      {plugins.length === 0 ? (
+        <EmptyState
+          icon={Package}
+          label="No plugins installed on this remote."
+        />
+      ) : (
+        <div className="space-y-2">
+          {plugins.map((plugin, idx) => (
+            <div
+              key={`${plugin.name}-${idx}`}
+              className="flex items-center gap-3 px-4 py-3 bg-[#141413] border border-[#2a2a28] rounded-xl"
+            >
+              <div className="p-1.5 bg-[#2a2a28] rounded-lg">
+                <Package size={14} className="text-[#b0aea5]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-medium text-[#faf9f5] truncate">
+                  {plugin.name}
+                </h4>
+                <p className="text-xs text-[#b0aea5]/60 truncate">
+                  {plugin.installPath || "No install path"}
+                </p>
+              </div>
+              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-[#d97757]/10 text-[#d97757]">
+                v{plugin.version}
+              </span>
+              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-[#2a2a28] text-[#b0aea5]">
+                {plugin.scope}
+              </span>
+              {plugin.installedAt && (
+                <span className="text-xs text-[#b0aea5]/40">
+                  {formatDate(plugin.installedAt)}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SkillList({ skills }: { skills: RemoteSkill[] }) {
+  if (skills.length === 0) {
+    return (
+      <div className="space-y-3">
+        <p className="text-xs text-[#b0aea5]/60">
+          Skills available from installed plugins (read-only, via claude skills
+          list)
+        </p>
+        <EmptyState icon={Zap} label="No skills found on this remote." />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-[#b0aea5]/60">
+        Skills available from installed plugins (read-only, via claude skills
+        list)
+      </p>
+      <div className="space-y-2">
+        {skills.map((skill) => (
+          <div
+            key={skill.name}
+            className="flex items-center gap-3 px-4 py-3 bg-[#141413] border border-[#2a2a28] rounded-xl"
+          >
+            <div className="p-1.5 bg-[#2a2a28] rounded-lg">
+              <Zap size={14} className="text-[#b0aea5]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-medium text-[#faf9f5] truncate">
+                {skill.name}
+              </h4>
+              {skill.description && (
+                <p className="text-xs text-[#b0aea5]/60 truncate">
+                  {skill.description}
+                </p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function McpList({
   mcps,
@@ -434,46 +678,6 @@ function McpList({
   );
 }
 
-function SkillList({
-  skills,
-  onRemove,
-}: {
-  skills: RemoteSkill[];
-  onRemove: (extType: string, name: string) => void;
-}) {
-  if (skills.length === 0) {
-    return <EmptyState icon={Zap} label="No skills found on this remote." />;
-  }
-
-  return (
-    <div className="space-y-2">
-      {skills.map((skill) => (
-        <div
-          key={skill.path}
-          className="flex items-center gap-3 px-4 py-3 bg-[#141413] border border-[#2a2a28] rounded-xl"
-        >
-          <div className="p-1.5 bg-[#2a2a28] rounded-lg">
-            <Zap size={14} className="text-[#b0aea5]" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-medium text-[#faf9f5] truncate">
-              {skill.name}
-            </h4>
-            <p className="text-xs text-[#b0aea5]/60 truncate">{skill.path}</p>
-          </div>
-          <button
-            onClick={() => onRemove("skill", skill.name)}
-            className="p-1.5 rounded-lg text-[#b0aea5] hover:text-[#c45c4a] hover:bg-[#c45c4a]/10 transition-colors"
-            title="Remove"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function HookList({
   hooks,
   onRemove,
@@ -502,7 +706,7 @@ function HookList({
               {hook.event}
             </h4>
             <p className="text-xs text-[#b0aea5]/60 truncate font-mono">
-              {hook.command || "—"}
+              {hook.command || "---"}
             </p>
           </div>
           <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-[#2a2a28] text-[#b0aea5]">

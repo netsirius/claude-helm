@@ -23,6 +23,8 @@ const LOGGED_COMMANDS = [
   "install_claude_remote",
   "update_claude_remote",
   "list_remote_skills",
+  "list_remote_plugins",
+  "install_plugin_on_remote",
   "list_remote_hooks",
   "list_remote_mcps",
   "list_remote_agents",

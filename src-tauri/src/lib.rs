@@ -62,6 +62,8 @@ pub fn run() {
             commands::pipeline_commands::get_pipeline_status,
             commands::pipeline_commands::cancel_pipeline,
             commands::remote_admin_commands::list_remote_skills,
+            commands::remote_admin_commands::list_remote_plugins,
+            commands::remote_admin_commands::install_plugin_on_remote,
             commands::remote_admin_commands::list_remote_hooks,
             commands::remote_admin_commands::list_remote_mcps,
             commands::remote_admin_commands::list_remote_agents,

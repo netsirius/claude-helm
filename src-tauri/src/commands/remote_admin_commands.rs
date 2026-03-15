@@ -8,12 +8,23 @@ use super::helpers::get_handle;
 
 // ─── Data Types ──────────────────────────────────────────────────────────────
 
-/// A skill discovered on the remote machine.
+/// A skill discovered via `claude skills list` on the remote machine.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RemoteSkill {
     pub name: String,
-    pub path: String,
+    pub description: String,
+}
+
+/// A plugin from `~/.claude/plugins/installed_plugins.json`.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemotePlugin {
+    pub name: String,
+    pub version: String,
+    pub scope: String,
+    pub install_path: String,
+    pub installed_at: String,
 }
 
 /// A hook definition from the Claude settings.
@@ -46,11 +57,21 @@ pub struct RemoteAgent {
     pub config: serde_json::Value,
 }
 
+/// Result of installing a plugin on a remote machine.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginInstallResult {
+    pub success: bool,
+    pub output: String,
+}
+
 // ─── Commands ────────────────────────────────────────────────────────────────
 
-/// List skills discovered in `~/.claude/` on the remote machine.
+/// List skills discovered via `claude skills list` on the remote machine.
 ///
-/// Searches for files named `SKILL.md` or `skill.md` under `~/.claude/`.
+/// Parses the human-readable output looking for lines like:
+///   - **name** — description
+///   /name — description
 #[tauri::command]
 pub async fn list_remote_skills(
     state: State<'_, AppState>,
@@ -60,31 +81,184 @@ pub async fn list_remote_skills(
 
     let result = exec_command(
         &handle,
-        "find ~/.claude -maxdepth 4 \\( -name 'SKILL.md' -o -name 'skill.md' \\) 2>/dev/null | head -50",
+        "claude skills list 2>/dev/null || echo ''",
     )
     .await?;
 
     let mut skills = Vec::new();
-    for line in result.stdout.lines() {
-        let path = line.trim();
-        if path.is_empty() {
-            continue;
-        }
-        // Extract skill name from parent directory
-        // e.g. ~/.claude/skills/my-skill/SKILL.md -> my-skill
-        let name = std::path::Path::new(path)
-            .parent()
-            .and_then(|p| p.file_name())
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_else(|| path.to_string());
+    let output = result.stdout.trim();
 
-        skills.push(RemoteSkill {
-            name,
-            path: path.to_string(),
-        });
+    if output.is_empty() || result.exit_code != 0 {
+        return Ok(skills);
+    }
+
+    for line in output.lines() {
+        let line = line.trim();
+
+        // Match patterns like:
+        //   - **skill-name** — description text
+        //   /skill-name — description text
+        //   - skill-name — description text
+        if let Some(rest) = line.strip_prefix("- **") {
+            // Format: - **name** — description
+            if let Some(name_end) = rest.find("**") {
+                let name = rest[..name_end].trim().to_string();
+                let desc_part = &rest[name_end + 2..];
+                let description = desc_part
+                    .trim_start_matches(|c: char| c == ' ' || c == '—' || c == '-')
+                    .trim()
+                    .to_string();
+                skills.push(RemoteSkill { name, description });
+            }
+        } else if line.starts_with('/') {
+            // Format: /name — description
+            let without_slash = &line[1..];
+            let (name, description) = if let Some(sep_pos) = without_slash.find('—') {
+                (
+                    without_slash[..sep_pos].trim().to_string(),
+                    without_slash[sep_pos + '—'.len_utf8()..].trim().to_string(),
+                )
+            } else if let Some(sep_pos) = without_slash.find(" - ") {
+                (
+                    without_slash[..sep_pos].trim().to_string(),
+                    without_slash[sep_pos + 3..].trim().to_string(),
+                )
+            } else {
+                (without_slash.trim().to_string(), String::new())
+            };
+            if !name.is_empty() {
+                skills.push(RemoteSkill { name, description });
+            }
+        } else if line.starts_with("- ") && !line.starts_with("- **") {
+            // Format: - name — description
+            let rest = &line[2..];
+            let (name, description) = if let Some(sep_pos) = rest.find('—') {
+                (
+                    rest[..sep_pos].trim().to_string(),
+                    rest[sep_pos + '—'.len_utf8()..].trim().to_string(),
+                )
+            } else if let Some(sep_pos) = rest.find(" - ") {
+                (
+                    rest[..sep_pos].trim().to_string(),
+                    rest[sep_pos + 3..].trim().to_string(),
+                )
+            } else {
+                (rest.trim().to_string(), String::new())
+            };
+            if !name.is_empty() {
+                skills.push(RemoteSkill { name, description });
+            }
+        }
     }
 
     Ok(skills)
+}
+
+/// List installed plugins from `~/.claude/plugins/installed_plugins.json`.
+///
+/// Parses the JSON file to extract plugin name, version, scope, installPath, installedAt.
+#[tauri::command]
+pub async fn list_remote_plugins(
+    state: State<'_, AppState>,
+    remote_id: String,
+) -> Result<Vec<RemotePlugin>, String> {
+    let handle = get_handle(&state, &remote_id).await?;
+
+    let result = exec_command(
+        &handle,
+        "cat ~/.claude/plugins/installed_plugins.json 2>/dev/null || echo '{}'",
+    )
+    .await?;
+
+    let mut plugins = Vec::new();
+    let json_str = result.stdout.trim();
+
+    if json_str.is_empty() || json_str == "{}" {
+        return Ok(plugins);
+    }
+
+    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(json_str) {
+        if let Some(plugins_obj) = parsed.get("plugins").and_then(|v| v.as_object()) {
+            for (plugin_key, installs) in plugins_obj {
+                // Each plugin key maps to an array of installations
+                if let Some(install_arr) = installs.as_array() {
+                    for install in install_arr {
+                        let version = install
+                            .get("version")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("unknown")
+                            .to_string();
+
+                        let scope = install
+                            .get("scope")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("user")
+                            .to_string();
+
+                        let install_path = install
+                            .get("installPath")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string();
+
+                        let installed_at = install
+                            .get("installedAt")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string();
+
+                        plugins.push(RemotePlugin {
+                            name: plugin_key.clone(),
+                            version,
+                            scope,
+                            install_path,
+                            installed_at,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(plugins)
+}
+
+/// Install a plugin on a remote machine via `npx skillsadd <skill_id>`.
+///
+/// The skill_id should be in "owner/repo" format (e.g. "anthropics/skills").
+/// Returns the install output.
+#[tauri::command]
+pub async fn install_plugin_on_remote(
+    state: State<'_, AppState>,
+    remote_id: String,
+    skill_id: String,
+) -> Result<PluginInstallResult, String> {
+    let handle = get_handle(&state, &remote_id).await?;
+
+    // Validate the skill_id format (should be owner/repo, no shell injection)
+    if skill_id.contains('\'')
+        || skill_id.contains(';')
+        || skill_id.contains('|')
+        || skill_id.contains('&')
+        || skill_id.contains('`')
+        || skill_id.contains('$')
+    {
+        return Err("Invalid skill ID: contains disallowed characters".to_string());
+    }
+
+    let escaped_id = skill_id.replace('\'', "'\\''");
+    let cmd = format!(
+        "npx skillsadd '{}' 2>&1",
+        escaped_id
+    );
+
+    let result = exec_command(&handle, &cmd).await?;
+    let output = format!("{}{}", result.stdout, result.stderr);
+
+    Ok(PluginInstallResult {
+        success: result.exit_code == 0,
+        output: output.trim().to_string(),
+    })
 }
 
 /// List hooks from the Claude settings on the remote machine.
@@ -322,22 +496,6 @@ pub async fn remove_remote_extension(
                 return Err(format!(
                     "Failed to write settings: {}",
                     write_result.stderr.trim()
-                ));
-            }
-        }
-        "skill" => {
-            // Remove the skill directory
-            // Safety: only allow removal under ~/.claude/
-            let escaped_name = name.replace('\'', "'\\''");
-            let cmd = format!(
-                "find ~/.claude -maxdepth 4 \\( -name 'SKILL.md' -o -name 'skill.md' \\) 2>/dev/null | while read f; do d=$(dirname \"$f\"); bn=$(basename \"$d\"); if [ \"$bn\" = '{}' ]; then rm -rf \"$d\"; echo \"removed $d\"; fi; done",
-                escaped_name
-            );
-            let result = exec_command(&handle, &cmd).await?;
-            if result.exit_code != 0 {
-                return Err(format!(
-                    "Failed to remove skill: {}",
-                    result.stderr.trim()
                 ));
             }
         }
