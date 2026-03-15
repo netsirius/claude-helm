@@ -18,6 +18,80 @@ fn strip_ansi(input: &str) -> String {
     re.replace_all(input, "").to_string()
 }
 
+/// Extract only Claude's response from the full pane output.
+///
+/// Removes: ASCII art banners, prompt lines (❯), thinking indicators,
+/// separator lines (───), status bars, and blank lines at start/end.
+/// Keeps: Claude's actual response text and tool usage summaries.
+fn extract_claude_response(raw: &str) -> String {
+    let lines: Vec<&str> = raw.lines().collect();
+    let mut response_lines: Vec<&str> = Vec::new();
+    let mut in_response = false;
+
+    for line in &lines {
+        let trimmed = line.trim();
+
+        // Skip empty lines at the start
+        if trimmed.is_empty() && !in_response {
+            continue;
+        }
+
+        // Skip ASCII art banner
+        if trimmed.contains("▐▛") || trimmed.contains("▝▜") || trimmed.contains("▘▘") {
+            continue;
+        }
+
+        // Skip the prompt line (user's input)
+        if trimmed.starts_with('\u{276F}') || trimmed == ">" {
+            // If we already captured a response, this is a new prompt — stop
+            if in_response && !response_lines.is_empty() {
+                break;
+            }
+            continue;
+        }
+
+        // Skip thinking/processing indicators
+        if trimmed.starts_with("\u{273B}") // ✻
+            || trimmed.contains("(thinking)")
+            || trimmed.contains("Crunching")
+            || trimmed.contains("Sublimating")
+            || trimmed.contains("Cogitat")
+        {
+            continue;
+        }
+
+        // Skip separator lines
+        if trimmed.chars().all(|c| c == '─' || c == '─' || c == '╌' || c.is_whitespace()) && trimmed.len() > 3 {
+            continue;
+        }
+
+        // Skip status bar lines
+        if trimmed.contains("accept edits")
+            || trimmed.contains("Remote Control active")
+            || trimmed.contains("for shortcuts")
+            || trimmed.contains("shift+tab")
+        {
+            continue;
+        }
+
+        // Skip Claude Code version info
+        if trimmed.contains("Claude Code v") || trimmed.contains("Claude Max") || trimmed.contains("Sonnet 4") {
+            continue;
+        }
+
+        // This is actual response content
+        in_response = true;
+        response_lines.push(trimmed);
+    }
+
+    // Trim trailing empty lines
+    while response_lines.last().map_or(false, |l| l.is_empty()) {
+        response_lines.pop();
+    }
+
+    response_lines.join("\n")
+}
+
 /// Detect whether Claude has finished processing and is idle.
 ///
 /// Checks the last 5 non-empty lines for prompt indicators.
@@ -585,7 +659,7 @@ pub async fn execute_pipeline(
                     Ok(raw_output) => {
                         let clean = strip_ansi(&raw_output);
                         if is_claude_idle(&clean) {
-                            captured_output = clean;
+                            captured_output = extract_claude_response(&clean);
                             completed = true;
                             break;
                         }

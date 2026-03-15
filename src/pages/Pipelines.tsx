@@ -466,16 +466,29 @@ export default function Pipelines() {
                       return (
                         <div
                           key={`output-${step.id}`}
-                          className="mt-2 rounded-lg bg-[#141413] border border-[#2a2a28] p-3"
+                          className="mt-2 rounded-xl bg-[#141413] border border-[#2a2a28] overflow-hidden"
                         >
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xs font-medium text-[#b0aea5]">
-                              Output from {agent?.name || step.agentId}
+                          <div className="flex items-center gap-2 px-4 py-2 bg-[#1e1e1c] border-b border-[#2a2a28]">
+                            {agent && (
+                              <div
+                                className="w-4 h-4 rounded-full flex items-center justify-center text-[10px]"
+                                style={{ backgroundColor: agent.color + "22", color: agent.color }}
+                              >
+                                {agent.icon || agent.name.charAt(0)}
+                              </div>
+                            )}
+                            <span className="text-xs font-medium text-[#faf9f5]">
+                              {step.label || agent?.name || "Step"}
+                            </span>
+                            <span className="text-[10px] text-[#b0aea5] ml-auto">
+                              {step.output?.length} chars
                             </span>
                           </div>
-                          <pre className="text-xs text-[#e8e6dc] whitespace-pre-wrap break-words max-h-48 overflow-y-auto font-mono">
-                            {step.output}
-                          </pre>
+                          <div className="p-4 max-h-80 overflow-y-auto">
+                            <div className="text-sm text-[#e8e6dc] whitespace-pre-wrap break-words leading-relaxed">
+                              {step.output}
+                            </div>
+                          </div>
                         </div>
                       );
                     })}
