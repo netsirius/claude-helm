@@ -106,7 +106,8 @@ export default function PipelineDAGEditor({
         source: depId,
         target: step.id,
         animated: step.status === "running",
-        style: { stroke: "#3a3a37", strokeWidth: 2 },
+        style: { stroke: "#d97757", strokeWidth: 2 },
+        type: "default",
       })),
     );
 
