@@ -484,8 +484,8 @@ export default function Pipelines() {
                               {step.output?.length} chars
                             </span>
                           </div>
-                          <div className="p-4 max-h-80 overflow-y-auto">
-                            <div className="text-sm text-[#e8e6dc] whitespace-pre-wrap break-words leading-relaxed">
+                          <div className="p-4 max-h-[500px] overflow-y-auto">
+                            <div className="text-sm text-[#e8e6dc] whitespace-pre-wrap break-words leading-relaxed font-mono">
                               {step.output}
                             </div>
                           </div>

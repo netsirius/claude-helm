@@ -682,9 +682,9 @@ pub async fn execute_pipeline(
             }
 
             if completed {
-                // Truncate output to 4000 chars
-                let truncated = if captured_output.len() > 4000 {
-                    captured_output[..4000].to_string()
+                // Truncate output to 10000 chars
+                let truncated = if captured_output.len() > 10000 {
+                    captured_output[..10000].to_string()
                 } else {
                     captured_output.clone()
                 };
