@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, RefreshCw, Search, Server } from "lucide-react";
 import { useVpsStore } from "../stores/vpsStore";
+import type { Vps } from "../stores/vpsStore";
 import VpsCard from "../components/vps/VpsCard";
 import AddVpsDialog from "../components/vps/AddVpsDialog";
+import EditVpsDialog from "../components/vps/EditVpsDialog";
 
 export default function VpsManager() {
   const { servers, loading, fetch } = useVpsStore();
   const [filter, setFilter] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingVps, setEditingVps] = useState<Vps | null>(null);
 
   useEffect(() => {
     fetch();
@@ -102,7 +105,7 @@ export default function VpsManager() {
           {grouped.ungrouped.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {grouped.ungrouped.map((vps) => (
-                <VpsCard key={vps.id} vps={vps} />
+                <VpsCard key={vps.id} vps={vps} onEdit={setEditingVps} />
               ))}
             </div>
           )}
@@ -114,7 +117,7 @@ export default function VpsManager() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {vpsItems.map((vps) => (
-                  <VpsCard key={vps.id} vps={vps} />
+                  <VpsCard key={vps.id} vps={vps} onEdit={setEditingVps} />
                 ))}
               </div>
             </div>
@@ -123,6 +126,13 @@ export default function VpsManager() {
       )}
 
       <AddVpsDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
+      {editingVps && (
+        <EditVpsDialog
+          open={true}
+          onClose={() => setEditingVps(null)}
+          vps={editingVps}
+        />
+      )}
     </div>
   );
 }

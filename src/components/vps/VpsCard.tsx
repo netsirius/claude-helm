@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Server, Trash2, Loader2, Wifi } from "lucide-react";
+import { Server, Trash2, Loader2, Wifi, Pencil } from "lucide-react";
 import type { Vps } from "../../stores/vpsStore";
 import { useVpsStore } from "../../stores/vpsStore";
 
 interface VpsCardProps {
   vps: Vps;
+  onEdit?: (vps: Vps) => void;
 }
 
 const statusColor: Record<string, string> = {
@@ -19,7 +20,7 @@ const statusLabel: Record<string, string> = {
   unknown: "Unknown",
 };
 
-export default function VpsCard({ vps }: VpsCardProps) {
+export default function VpsCard({ vps, onEdit }: VpsCardProps) {
   const [testing, setTesting] = useState(false);
   const testConnection = useVpsStore((s) => s.testConnection);
   const remove = useVpsStore((s) => s.remove);
@@ -94,6 +95,13 @@ export default function VpsCard({ vps }: VpsCardProps) {
             <Wifi size={14} />
           )}
           Test
+        </button>
+        <button
+          onClick={() => onEdit?.(vps)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+        >
+          <Pencil size={14} />
+          Edit
         </button>
         <button
           onClick={handleDelete}

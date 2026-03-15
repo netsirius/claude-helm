@@ -52,6 +52,78 @@ pub async fn add_vps(
     Ok(result)
 }
 
+/// Update an existing VPS entry, applying only the provided fields.
+///
+/// If connection-relevant fields (host, port, user, ssh_key_path) change,
+/// the old SSH connection is disconnected so a fresh one will be created.
+#[tauri::command]
+pub async fn update_vps(
+    state: State<'_, AppState>,
+    id: String,
+    name: Option<String>,
+    host: Option<String>,
+    user: Option<String>,
+    port: Option<u16>,
+    ssh_key_path: Option<String>,
+    tags: Option<Vec<String>>,
+    group: Option<String>,
+) -> Result<Vps, String> {
+    // Determine whether connection-relevant fields are changing
+    let needs_reconnect;
+    let updated;
+
+    {
+        let mut config = state.vps_config.lock().await;
+        let vps = config
+            .get_mut(&id)
+            .ok_or_else(|| format!("VPS '{}' not found", id))?;
+
+        // Check if any SSH-relevant field is being changed
+        needs_reconnect = host.as_ref().is_some_and(|v| *v != vps.host)
+            || port.is_some_and(|v| v != vps.port)
+            || user.as_ref().is_some_and(|v| *v != vps.user)
+            || ssh_key_path.as_ref().is_some_and(|v| *v != vps.ssh_key_path);
+
+        // Apply only provided fields
+        if let Some(v) = name {
+            vps.name = v;
+        }
+        if let Some(v) = host {
+            vps.host = v;
+        }
+        if let Some(v) = user {
+            vps.user = v;
+        }
+        if let Some(v) = port {
+            vps.port = v;
+        }
+        if let Some(v) = ssh_key_path {
+            vps.ssh_key_path = v;
+        }
+        if let Some(v) = tags {
+            vps.tags = v;
+        }
+        if let Some(v) = group {
+            vps.group = v;
+        }
+
+        updated = vps.clone();
+
+        // Persist — acquire config store while still holding vps_config
+        let store = state.config.lock().await;
+        store
+            .save("vps.json", &*config)
+            .map_err(|e| format!("Failed to save VPS config: {}", e))?;
+    }
+
+    // Disconnect old SSH session if connection details changed
+    if needs_reconnect {
+        let _ = state.ssh_pool.disconnect(&id).await;
+    }
+
+    Ok(updated)
+}
+
 /// Remove a VPS by ID and persist to disk.  Returns `true` if the entry existed.
 #[tauri::command]
 pub async fn remove_vps(state: State<'_, AppState>, id: String) -> Result<bool, String> {

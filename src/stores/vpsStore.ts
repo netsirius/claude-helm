@@ -14,6 +14,16 @@ export interface Vps {
   lastSeen: string;
 }
 
+export interface VpsUpdates {
+  name?: string;
+  host?: string;
+  user?: string;
+  sshKeyPath?: string;
+  port?: number;
+  tags?: string[];
+  group?: string;
+}
+
 interface VpsState {
   servers: Vps[];
   loading: boolean;
@@ -28,6 +38,7 @@ interface VpsState {
     tags?: string[];
     group?: string;
   }) => Promise<void>;
+  update: (id: string, updates: VpsUpdates) => Promise<void>;
   remove: (id: string) => Promise<void>;
   testConnection: (id: string) => Promise<boolean>;
 }
@@ -58,6 +69,25 @@ export const useVpsStore = create<VpsState>((set, get) => ({
         port: vps.port,
         tags: vps.tags,
         group: vps.group,
+      });
+      await get().fetch();
+    } catch (e) {
+      set({ error: String(e), loading: false });
+    }
+  },
+
+  update: async (id, updates) => {
+    set({ loading: true, error: null });
+    try {
+      await tauriInvoke<Vps>("update_vps", {
+        id,
+        name: updates.name,
+        host: updates.host,
+        user: updates.user,
+        port: updates.port,
+        sshKeyPath: updates.sshKeyPath,
+        tags: updates.tags,
+        group: updates.group,
       });
       await get().fetch();
     } catch (e) {

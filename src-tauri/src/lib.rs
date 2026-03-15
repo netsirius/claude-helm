@@ -35,6 +35,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::vps_commands::list_vps,
             commands::vps_commands::add_vps,
+            commands::vps_commands::update_vps,
             commands::vps_commands::remove_vps,
             commands::vps_commands::test_vps_connection,
             commands::vps_commands::probe_vps,
