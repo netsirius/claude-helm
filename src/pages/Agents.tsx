@@ -5,7 +5,7 @@ import { useRemoteStore, type Remote } from "../stores/remoteStore";
 import { tauriInvoke } from "../lib/tauri";
 import AgentCard from "../components/agents/AgentCard";
 import type { AgentActivity } from "../components/agents/AgentCard";
-import CreateAgentDialog from "../components/agents/CreateAgentDialog";
+import AgentFormDialog from "../components/agents/AgentFormDialog";
 import FileBrowser from "../components/remote/FileBrowser";
 
 const ACTIVITY_POLL_INTERVAL = 5000;
@@ -14,6 +14,7 @@ export default function Agents() {
   const { agents, loading, fetch: fetchAgents } = useAgentStore();
   const { remotes, fetch: fetchRemotes } = useRemoteStore();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
 
   // Activity state for running agents
   const [activityMap, setActivityMap] = useState<Map<string, AgentActivity>>(
@@ -227,6 +228,11 @@ export default function Agents() {
     await fetchAgents();
   };
 
+  const handleEdit = (agent: Agent) => {
+    setEditingAgent(agent);
+    setDialogOpen(true);
+  };
+
   const isEmpty = agents.length === 0 && !loading;
 
   return (
@@ -289,6 +295,7 @@ export default function Agents() {
               onCopySSH={handleCopySSH}
               onOpenRemote={handleOpenRemote}
               onDelete={handleDelete}
+              onEdit={handleEdit}
             />
           ))}
         </div>
@@ -320,10 +327,14 @@ export default function Agents() {
         </div>
       )}
 
-      <CreateAgentDialog
+      <AgentFormDialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={() => {
+          setDialogOpen(false);
+          setEditingAgent(null);
+        }}
         remoteList={remotes}
+        editAgent={editingAgent}
       />
 
       {pendingStartAgent?.assignedRemoteId && (

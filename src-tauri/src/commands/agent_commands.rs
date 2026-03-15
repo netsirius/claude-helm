@@ -57,6 +57,59 @@ pub async fn add_agent(
     Ok(result)
 }
 
+/// Update an existing agent by ID, applying only the provided fields.
+#[tauri::command]
+pub async fn update_agent(
+    state: State<'_, AppState>,
+    id: String,
+    name: Option<String>,
+    role: Option<String>,
+    icon: Option<String>,
+    color: Option<String>,
+    default_model: Option<String>,
+    assigned_remote_id: Option<String>,
+    claude_md: Option<String>,
+) -> Result<Agent, String> {
+    let (result, data) = {
+        let mut config = state.agents_config.lock().await;
+        let agent = config
+            .get_mut(&id)
+            .ok_or_else(|| format!("Agent not found: {}", id))?;
+
+        if let Some(v) = name {
+            agent.name = v;
+        }
+        if let Some(v) = role {
+            agent.role = v;
+        }
+        if let Some(v) = icon {
+            agent.icon = v;
+        }
+        if let Some(v) = color {
+            agent.color = v;
+        }
+        if let Some(v) = default_model {
+            agent.default_model = v;
+        }
+        if let Some(v) = assigned_remote_id {
+            agent.assigned_remote_id = if v.is_empty() { None } else { Some(v) };
+        }
+        if let Some(v) = claude_md {
+            agent.claude_md = v;
+        }
+
+        let result = agent.clone();
+        (result, config.clone())
+    };
+
+    let store = state.config.lock().await;
+    store
+        .save("agents.json", &data)
+        .map_err(|e| format!("Failed to save agents config: {}", e))?;
+
+    Ok(result)
+}
+
 /// Remove an agent by ID and persist to disk.  Returns `true` if the entry existed.
 #[tauri::command]
 pub async fn remove_agent(state: State<'_, AppState>, id: String) -> Result<bool, String> {

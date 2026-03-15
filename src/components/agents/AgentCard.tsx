@@ -12,6 +12,7 @@ import {
   Wrench,
   ChevronRight,
   Activity,
+  Pencil,
 } from "lucide-react";
 import type { Agent } from "../../stores/agentStore";
 import type { Remote } from "../../stores/remoteStore";
@@ -33,6 +34,7 @@ interface AgentCardProps {
   onCopySSH: (agent: Agent, remote: Remote) => void;
   onOpenRemote: (agent: Agent) => Promise<void>;
   onDelete: (agent: Agent) => Promise<void>;
+  onEdit?: (agent: Agent) => void;
 }
 
 const statusConfig: Record<
@@ -108,6 +110,7 @@ export default function AgentCard({
   onCopySSH,
   onOpenRemote,
   onDelete,
+  onEdit,
 }: AgentCardProps) {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const status = getAgentStatus(agent);
@@ -146,12 +149,23 @@ export default function AgentCard({
           </div>
         </div>
 
-        <span
-          className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full ${cfg.badgeClass}`}
-        >
-          <span className={`inline-block w-1.5 h-1.5 rounded-full ${cfg.dotClass}`} />
-          {cfg.label}
-        </span>
+        <div className="flex items-center gap-2">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(agent)}
+              className="p-1 rounded-md text-[#b0aea5] hover:text-[#faf9f5] hover:bg-[#2a2a28] transition-colors"
+              title="Edit agent"
+            >
+              <Pencil size={14} />
+            </button>
+          )}
+          <span
+            className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full ${cfg.badgeClass}`}
+          >
+            <span className={`inline-block w-1.5 h-1.5 rounded-full ${cfg.dotClass}`} />
+            {cfg.label}
+          </span>
+        </div>
       </div>
 
       {/* Meta */}

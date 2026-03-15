@@ -375,7 +375,7 @@ async fn find_rc_url(
         session_id
     );
     // Execute via a heredoc to avoid escaping hell
-    let cmd = format!("sh -c \"{}\"", script.replace('"', "\\\""));
+    let _cmd = format!("sh -c \"{}\"", script.replace('"', "\\\""));
 
     // Actually, simplest approach: just capture and let Rust find the URL
     let capture_cmd = format!("tmux capture-pane -t {} -p -S -50", session_id);

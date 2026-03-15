@@ -33,6 +33,7 @@ interface AgentState {
       claudeMd?: string;
     },
   ) => Promise<void>;
+  update: (id: string, updates: Partial<Omit<Agent, "id" | "createdAt" | "tags" | "currentSessionId" | "currentRemoteId">>) => Promise<void>;
   remove: (id: string) => Promise<void>;
 }
 
@@ -68,6 +69,26 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       set({ loading: false, error: `Failed to add agent: ${message}` });
+    }
+  },
+
+  update: async (id, updates) => {
+    set({ loading: true, error: null });
+    try {
+      await tauriInvoke<Agent>("update_agent", {
+        id,
+        name: updates.name,
+        role: updates.role,
+        icon: updates.icon,
+        color: updates.color,
+        defaultModel: updates.defaultModel,
+        assignedRemoteId: updates.assignedRemoteId,
+        claudeMd: updates.claudeMd,
+      });
+      await get().fetch();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      set({ loading: false, error: `Failed to update agent: ${message}` });
     }
   },
 

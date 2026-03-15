@@ -121,6 +121,7 @@ pub fn run() {
             commands::remote_commands::update_claude_remote,
             commands::agent_commands::list_agents,
             commands::agent_commands::add_agent,
+            commands::agent_commands::update_agent,
             commands::agent_commands::remove_agent,
             commands::session_commands::list_sessions,
             commands::session_commands::create_session,
