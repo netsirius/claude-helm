@@ -20,6 +20,7 @@ export default function StepEditPanel({
   onDelete,
   readOnly,
 }: StepEditPanelProps) {
+  const [label, setLabel] = useState(step.label);
   const [agentId, setAgentId] = useState(step.agentId);
   const [prompt, setPrompt] = useState(step.prompt);
   const [timeout, setTimeout_] = useState(step.timeout);
@@ -27,11 +28,12 @@ export default function StepEditPanel({
 
   // Reset form when selected step changes
   useEffect(() => {
+    setLabel(step.label);
     setAgentId(step.agentId);
     setPrompt(step.prompt);
     setTimeout_(step.timeout);
     setDependsOn(step.dependsOn);
-  }, [step.id, step.agentId, step.prompt, step.timeout, step.dependsOn]);
+  }, [step.id, step.label, step.agentId, step.prompt, step.timeout, step.dependsOn]);
 
   const otherSteps = allSteps.filter((s) => s.id !== step.id);
 
@@ -42,10 +44,11 @@ export default function StepEditPanel({
   };
 
   const handleSave = () => {
-    onSave(step.id, { agentId, prompt, timeout, dependsOn });
+    onSave(step.id, { label, agentId, prompt, timeout, dependsOn });
   };
 
   const hasChanges =
+    label !== step.label ||
     agentId !== step.agentId ||
     prompt !== step.prompt ||
     timeout !== step.timeout ||
@@ -64,6 +67,19 @@ export default function StepEditPanel({
             style={{ backgroundColor: agent.color }}
           />
         )}
+      </div>
+
+      {/* Label */}
+      <div className="space-y-1.5">
+        <label className="text-xs text-[#b0aea5]">Label</label>
+        <input
+          type="text"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          disabled={readOnly}
+          className="w-full px-3 py-2 rounded-lg bg-[#1e1e1c] border border-[#2a2a28] text-[#faf9f5] text-sm placeholder:text-[#b0aea5]/60 focus:outline-none focus:border-[#d97757] disabled:opacity-50"
+          placeholder="e.g. Build, Test, Deploy..."
+        />
       </div>
 
       {/* Agent selector */}
@@ -148,7 +164,7 @@ export default function StepEditPanel({
                     className="rounded border-[#3a3a37] bg-[#2a2a28] text-[#d97757] focus:ring-[#d97757] focus:ring-offset-0"
                   />
                   <span className="text-xs text-[#e8e6dc]">
-                    {depAgent?.name || s.agentId}
+                    {s.label || depAgent?.name || s.agentId}
                   </span>
                 </label>
               );

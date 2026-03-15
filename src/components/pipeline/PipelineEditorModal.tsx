@@ -29,9 +29,10 @@ export default function PipelineEditorModal({
   const handleAddStep = useCallback(async () => {
     if (agents.length === 0) return;
     const defaultAgent = agents[0];
-    await addStep(pipeline.id, defaultAgent.id, "", []);
+    const stepNumber = pipeline.steps.length + 1;
+    await addStep(pipeline.id, defaultAgent.id, "", [], `Step ${stepNumber}`);
     // The store will re-fetch; new step will appear in the DAG
-  }, [addStep, pipeline.id, agents]);
+  }, [addStep, pipeline.id, pipeline.steps.length, agents]);
 
   const handleSaveStep = useCallback(
     async (stepId: string, updates: Partial<PipelineStep>) => {

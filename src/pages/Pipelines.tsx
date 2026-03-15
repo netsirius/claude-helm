@@ -350,7 +350,7 @@ export default function Pipelines() {
                               </div>
                             )}
                             <span className="text-xs text-[#e8e6dc]">
-                              {agent?.name || step.agentId}
+                              {step.label || agent?.name || step.agentId}
                             </span>
                             {step.output && (
                               <ChevronDown

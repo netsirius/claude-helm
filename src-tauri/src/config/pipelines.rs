@@ -34,6 +34,8 @@ pub enum PipelineStatus {
 #[serde(rename_all = "camelCase")]
 pub struct PipelineStep {
     pub id: String,
+    #[serde(default)]
+    pub label: String,
     pub agent_id: String,
     pub prompt: String,
     pub depends_on: Vec<String>,
@@ -99,9 +101,10 @@ impl Pipeline {
 }
 
 impl PipelineStep {
-    pub fn new(agent_id: String, prompt: String) -> Self {
+    pub fn new(agent_id: String, prompt: String, label: String) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
+            label,
             agent_id,
             prompt,
             depends_on: vec![],
@@ -157,9 +160,9 @@ mod tests {
             "A pipeline with steps".to_string(),
         );
 
-        let step1 = PipelineStep::new("agent-1".to_string(), "Build the project".to_string());
+        let step1 = PipelineStep::new("agent-1".to_string(), "Build the project".to_string(), "Build".to_string());
         let step1_id = step1.id.clone();
-        let mut step2 = PipelineStep::new("agent-2".to_string(), "Run tests".to_string());
+        let mut step2 = PipelineStep::new("agent-2".to_string(), "Run tests".to_string(), "Test".to_string());
         step2.depends_on = vec![step1_id];
 
         pipeline.steps.push(step1);
@@ -175,7 +178,7 @@ mod tests {
     fn test_serialization() {
         let mut config = PipelinesConfig::new();
         let mut pipeline = Pipeline::new("serial-pipe".to_string(), "test".to_string());
-        let step = PipelineStep::new("agent-x".to_string(), "do something".to_string());
+        let step = PipelineStep::new("agent-x".to_string(), "do something".to_string(), "Step 1".to_string());
         pipeline.steps.push(step);
         config.add(pipeline);
 

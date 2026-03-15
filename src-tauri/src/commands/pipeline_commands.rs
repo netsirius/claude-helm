@@ -164,8 +164,10 @@ pub async fn add_pipeline_step(
     agent_id: String,
     prompt: String,
     depends_on: Vec<String>,
+    label: Option<String>,
 ) -> Result<PipelineStep, String> {
-    let mut step = PipelineStep::new(agent_id, prompt);
+    let label = label.unwrap_or_default();
+    let mut step = PipelineStep::new(agent_id, prompt, label);
     step.depends_on = depends_on;
     let result = step.clone();
 
@@ -184,6 +186,78 @@ pub async fn add_pipeline_step(
         .map_err(|e| format!("Failed to save pipelines config: {}", e))?;
 
     Ok(result)
+}
+
+/// Update a step within a pipeline and persist to disk.
+#[tauri::command]
+pub async fn update_pipeline_step(
+    state: State<'_, AppState>,
+    pipeline_id: String,
+    step_id: String,
+    label: Option<String>,
+    agent_id: Option<String>,
+    prompt: Option<String>,
+    depends_on: Option<Vec<String>>,
+    timeout: Option<u64>,
+) -> Result<(), String> {
+    let data = {
+        let mut config = state.pipelines_config.lock().await;
+        let pipeline = config
+            .get_mut(&pipeline_id)
+            .ok_or_else(|| format!("Pipeline '{}' not found", pipeline_id))?;
+        let step = pipeline
+            .steps
+            .iter_mut()
+            .find(|s| s.id == step_id)
+            .ok_or_else(|| format!("Step '{}' not found", step_id))?;
+        if let Some(l) = label {
+            step.label = l;
+        }
+        if let Some(a) = agent_id {
+            step.agent_id = a;
+        }
+        if let Some(p) = prompt {
+            step.prompt = p;
+        }
+        if let Some(d) = depends_on {
+            step.depends_on = d;
+        }
+        if let Some(t) = timeout {
+            step.timeout = t;
+        }
+        config.clone()
+    };
+
+    let store = state.config.lock().await;
+    store
+        .save("pipelines.json", &data)
+        .map_err(|e| format!("Failed to save pipelines config: {}", e))
+}
+
+/// Remove a step from a pipeline, clean up dangling dependencies, and persist to disk.
+#[tauri::command]
+pub async fn remove_pipeline_step(
+    state: State<'_, AppState>,
+    pipeline_id: String,
+    step_id: String,
+) -> Result<(), String> {
+    let data = {
+        let mut config = state.pipelines_config.lock().await;
+        let pipeline = config
+            .get_mut(&pipeline_id)
+            .ok_or_else(|| format!("Pipeline '{}' not found", pipeline_id))?;
+        pipeline.steps.retain(|s| s.id != step_id);
+        // Clean up dangling dependencies
+        for step in &mut pipeline.steps {
+            step.depends_on.retain(|d| d != &step_id);
+        }
+        config.clone()
+    };
+
+    let store = state.config.lock().await;
+    store
+        .save("pipelines.json", &data)
+        .map_err(|e| format!("Failed to save pipelines config: {}", e))
 }
 
 /// Delete a pipeline by ID and persist to disk. Returns `true` if the entry existed.
@@ -664,6 +738,7 @@ mod tests {
         let steps = vec![
             PipelineStep {
                 id: "a".to_string(),
+                label: "Step A".to_string(),
                 agent_id: "agent-1".to_string(),
                 prompt: "step a".to_string(),
                 depends_on: vec![],
@@ -673,6 +748,7 @@ mod tests {
             },
             PipelineStep {
                 id: "b".to_string(),
+                label: "Step B".to_string(),
                 agent_id: "agent-1".to_string(),
                 prompt: "step b".to_string(),
                 depends_on: vec!["a".to_string()],
@@ -682,6 +758,7 @@ mod tests {
             },
             PipelineStep {
                 id: "c".to_string(),
+                label: "Step C".to_string(),
                 agent_id: "agent-1".to_string(),
                 prompt: "step c".to_string(),
                 depends_on: vec!["b".to_string()],
@@ -704,6 +781,7 @@ mod tests {
         let steps = vec![
             PipelineStep {
                 id: "a".to_string(),
+                label: "Step A".to_string(),
                 agent_id: "agent-1".to_string(),
                 prompt: "step a".to_string(),
                 depends_on: vec!["b".to_string()],
@@ -713,6 +791,7 @@ mod tests {
             },
             PipelineStep {
                 id: "b".to_string(),
+                label: "Step B".to_string(),
                 agent_id: "agent-1".to_string(),
                 prompt: "step b".to_string(),
                 depends_on: vec!["a".to_string()],
@@ -730,6 +809,7 @@ mod tests {
         let steps = vec![
             PipelineStep {
                 id: "x".to_string(),
+                label: "Step X".to_string(),
                 agent_id: "agent-1".to_string(),
                 prompt: "step x".to_string(),
                 depends_on: vec![],
@@ -739,6 +819,7 @@ mod tests {
             },
             PipelineStep {
                 id: "y".to_string(),
+                label: "Step Y".to_string(),
                 agent_id: "agent-1".to_string(),
                 prompt: "step y".to_string(),
                 depends_on: vec![],

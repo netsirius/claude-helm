@@ -22,7 +22,8 @@ function StepNodeComponent({ data }: NodeProps<StepNodeType>) {
   const { step, agent, selected } = data;
   const borderColor = agent?.color || "#71717a";
   const promptPreview =
-    step.prompt.length > 60 ? step.prompt.slice(0, 60) + "..." : step.prompt;
+    step.prompt.length > 50 ? step.prompt.slice(0, 50) + "..." : step.prompt;
+  const displayTitle = step.label || agent?.name || step.agentId;
 
   return (
     <div
@@ -50,7 +51,7 @@ function StepNodeComponent({ data }: NodeProps<StepNodeType>) {
           </div>
         )}
         <span className="text-sm font-medium text-[#faf9f5] truncate">
-          {agent?.name || step.agentId}
+          {displayTitle}
         </span>
         <span
           className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-full capitalize whitespace-nowrap ${statusStyles[step.status] || statusStyles.pending}`}

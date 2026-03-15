@@ -57,6 +57,8 @@ pub fn run() {
             commands::pipeline_commands::list_pipelines,
             commands::pipeline_commands::create_pipeline,
             commands::pipeline_commands::add_pipeline_step,
+            commands::pipeline_commands::update_pipeline_step,
+            commands::pipeline_commands::remove_pipeline_step,
             commands::pipeline_commands::delete_pipeline,
             commands::pipeline_commands::execute_pipeline,
             commands::pipeline_commands::get_pipeline_status,
