@@ -20,20 +20,23 @@ fn strip_ansi(input: &str) -> String {
 
 /// Detect whether Claude has finished processing and is idle.
 ///
-/// Checks the last non-empty line for common prompt indicators.
+/// Checks the last 5 non-empty lines for prompt indicators.
+/// Claude's prompt ❯ may not be the very last line — status bars,
+/// remote-control banners, and mode indicators appear below it.
 fn is_claude_idle(output: &str) -> bool {
     output
         .lines()
         .rev()
-        .find(|line| !line.trim().is_empty())
-        .map(|line| {
+        .filter(|line| !line.trim().is_empty())
+        .take(5)
+        .any(|line| {
             let trimmed = line.trim();
-            let rtrimmed = line.trim_start();
-            trimmed.ends_with('\u{276F}') // ❯
-                || trimmed.ends_with('>')
-                || rtrimmed.ends_with("$ ")
+            trimmed == "\u{276F}"
+                || trimmed.ends_with("\u{276F}")
+                || trimmed.starts_with("\u{276F} ")
+                || trimmed == ">"
+                || trimmed.ends_with("$ ")
         })
-        .unwrap_or(false)
 }
 
 // ─── Topological sort ────────────────────────────────────────────────────────
