@@ -23,6 +23,7 @@ pub fn run() {
             commands::session_commands::create_session,
             commands::session_commands::stop_session,
             commands::session_commands::capture_session_output,
+            commands::extension_commands::list_vps_extensions,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
