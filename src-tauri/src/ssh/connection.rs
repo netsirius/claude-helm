@@ -2,14 +2,66 @@ use async_trait::async_trait;
 use russh::client::{Config, Handle};
 use russh::keys::load_secret_key;
 use russh::Disconnect;
+use russh_keys::HashAlg;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 
-/// SSH client handler that accepts all server keys.
-/// TODO: implement known_hosts checking for production use.
-pub struct SshHandler;
+/// Load the known-hosts store from `~/.claude-manager/known_hosts.json`.
+/// Returns an empty map if the file doesn't exist or can't be parsed.
+fn load_known_hosts() -> HashMap<String, String> {
+    let path = known_hosts_path();
+    match std::fs::read_to_string(&path) {
+        Ok(contents) => serde_json::from_str(&contents).unwrap_or_default(),
+        Err(_) => HashMap::new(),
+    }
+}
+
+/// Persist the known-hosts map to `~/.claude-manager/known_hosts.json`.
+fn save_known_hosts(hosts: &HashMap<String, String>) -> Result<(), String> {
+    let path = known_hosts_path();
+    let json = serde_json::to_string_pretty(hosts)
+        .map_err(|e| format!("Failed to serialise known_hosts: {}", e))?;
+    std::fs::write(&path, &json)
+        .map_err(|e| format!("Failed to write known_hosts: {}", e))?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let perms = std::fs::Permissions::from_mode(0o600);
+        std::fs::set_permissions(&path, perms)
+            .map_err(|e| format!("Failed to set known_hosts permissions: {}", e))?;
+    }
+
+    Ok(())
+}
+
+fn known_hosts_path() -> PathBuf {
+    dirs::home_dir()
+        .expect("Could not determine home directory")
+        .join(".claude-manager")
+        .join("known_hosts.json")
+}
+
+/// SSH client handler that implements Trust On First Use (TOFU) host key verification.
+///
+/// On first connection to a host, the server's public key fingerprint is stored in
+/// `~/.claude-manager/known_hosts.json`. On subsequent connections, the key is verified
+/// against the stored fingerprint.
+pub struct SshHandler {
+    /// The `host:port` identifier for this connection.
+    host_addr: String,
+}
+
+impl SshHandler {
+    pub fn new(host: &str, port: u16) -> Self {
+        Self {
+            host_addr: format!("{}:{}", host, port),
+        }
+    }
+}
 
 #[async_trait]
 impl russh::client::Handler for SshHandler {
@@ -17,11 +69,37 @@ impl russh::client::Handler for SshHandler {
 
     async fn check_server_key(
         &mut self,
-        _server_public_key: &russh_keys::PublicKey,
+        server_public_key: &russh_keys::PublicKey,
     ) -> Result<bool, Self::Error> {
-        // Accept all host keys for now.
-        // In production, verify against ~/.ssh/known_hosts.
-        Ok(true)
+        let fingerprint = server_public_key.fingerprint(HashAlg::Sha256).to_string();
+
+        let mut known = load_known_hosts();
+
+        if let Some(stored_fp) = known.get(&self.host_addr) {
+            // Subsequent connection: verify the key matches
+            if *stored_fp != fingerprint {
+                eprintln!(
+                    "HOST KEY VERIFICATION FAILED for {}!\n\
+                     Stored fingerprint:  {}\n\
+                     Current fingerprint: {}\n\
+                     The server's host key has changed. This could indicate a \
+                     man-in-the-middle attack. Connection rejected.\n\
+                     To accept the new key, remove the entry for '{}' from \
+                     ~/.claude-manager/known_hosts.json",
+                    self.host_addr, stored_fp, fingerprint, self.host_addr
+                );
+                return Ok(false);
+            }
+            Ok(true)
+        } else {
+            // First connection (TOFU): store the fingerprint
+            known.insert(self.host_addr.clone(), fingerprint);
+            if let Err(e) = save_known_hosts(&known) {
+                eprintln!("Warning: failed to save known_hosts: {}", e);
+                // Still accept the key even if we can't persist, but warn
+            }
+            Ok(true)
+        }
     }
 }
 
@@ -78,13 +156,23 @@ impl SshPool {
             conns.remove(vps_id);
         }
 
+        // Expand tilde in key path to the user's home directory
+        let expanded_key_path = if key_path.starts_with("~/") {
+            match dirs::home_dir() {
+                Some(home) => home.join(&key_path[2..]).to_string_lossy().into_owned(),
+                None => key_path.to_string(),
+            }
+        } else {
+            key_path.to_string()
+        };
+
         // Load the private key (no passphrase)
-        let key = load_secret_key(key_path, None)
-            .map_err(|e| format!("Failed to load SSH key '{}': {}", key_path, e))?;
+        let key = load_secret_key(&expanded_key_path, None)
+            .map_err(|e| format!("Failed to load SSH key '{}': {}", expanded_key_path, e))?;
 
         let config = Arc::new(Config::default());
         let addr = format!("{}:{}", host, port);
-        let handler = SshHandler;
+        let handler = SshHandler::new(host, port);
 
         let mut handle = russh::client::connect(config, &addr, handler)
             .await

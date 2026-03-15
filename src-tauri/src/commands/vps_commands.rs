@@ -165,6 +165,15 @@ pub async fn probe_vps(
         let probe_json = serde_json::to_string_pretty(&probe)
             .map_err(|e| format!("Failed to serialise probe result: {}", e))?;
         let probe_path = probes_dir.join(format!("{}.json", id));
+
+        // Guard against path traversal via crafted VPS ID
+        if !probe_path.starts_with(&probes_dir) {
+            return Err(format!(
+                "Invalid VPS ID '{}': results in path traversal",
+                id
+            ));
+        }
+
         fs::write(&probe_path, &probe_json)
             .map_err(|e| format!("Failed to write probe file: {}", e))?;
     }

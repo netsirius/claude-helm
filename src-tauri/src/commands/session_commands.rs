@@ -30,7 +30,17 @@ pub async fn create_session(
     // Load probe cache to find claude path
     let claude_path = {
         let store = state.config.lock().await;
-        let probe_path = store.base_dir().join("probes").join(format!("{}.json", vps_id));
+        let probes_dir = store.base_dir().join("probes");
+        let probe_path = probes_dir.join(format!("{}.json", vps_id));
+
+        // Guard against path traversal via crafted VPS ID
+        if !probe_path.starts_with(&probes_dir) {
+            return Err(format!(
+                "Invalid VPS ID '{}': results in path traversal",
+                vps_id
+            ));
+        }
+
         let probe_json = fs::read_to_string(&probe_path)
             .map_err(|_| format!("No probe cache for VPS '{}'. Run probe first.", vps_id))?;
         let probe: ProbeResult = serde_json::from_str(&probe_json)
@@ -40,9 +50,18 @@ pub async fn create_session(
             .ok_or_else(|| format!("Claude CLI not found on VPS '{}'", vps_id))?
     };
 
-    // Build the claude command with optional model flag
+    // Validate and build the claude command with optional model flag
     let claude_cmd = match model {
-        Some(ref m) => format!("{} --model {}", claude_path, m),
+        Some(ref m) => {
+            let model_re = regex_lite::Regex::new(r"^[a-zA-Z0-9_\-\.]+$").unwrap();
+            if !model_re.is_match(m) {
+                return Err(format!(
+                    "Invalid model name '{}': must match [a-zA-Z0-9_\\-.]+ ",
+                    m
+                ));
+            }
+            format!("{} --model {}", claude_path, m)
+        }
         None => claude_path,
     };
 
