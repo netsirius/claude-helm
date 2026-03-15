@@ -28,29 +28,42 @@ export default function Agents() {
     const workingDir = agent.defaultDir || "~";
     const model = agent.defaultModel || undefined;
 
-    await tauriInvoke<string>("create_session", {
-      vpsId,
-      agentId: agent.id,
-      workingDir: workingDir,
-      model,
-    });
-    await fetchAgents();
+    try {
+      // Ensure VPS has been probed (needed to find claude binary path)
+      await tauriInvoke("probe_vps", { id: vpsId });
+
+      await tauriInvoke<string>("create_session", {
+        vpsId,
+        agentId: agent.id,
+        workingDir: workingDir,
+        model,
+      });
+      await fetchAgents();
+    } catch (e) {
+      alert(`Failed to start agent: ${e}`);
+    }
   };
 
   const handleStop = async (agent: Agent) => {
     if (!agent.currentSessionId || !agent.currentVpsId) return;
 
-    await tauriInvoke<null>("stop_session", {
-      vpsId: agent.currentVpsId,
-      sessionId: agent.currentSessionId,
-    });
-    await fetchAgents();
+    try {
+      await tauriInvoke<null>("stop_session", {
+        vpsId: agent.currentVpsId,
+        sessionId: agent.currentSessionId,
+      });
+      await fetchAgents();
+    } catch (e) {
+      alert(`Failed to stop agent: ${e}`);
+    }
   };
 
   const handleOpen = (agent: Agent, vps: Vps) => {
     if (!agent.currentSessionId) return;
     const cmd = `ssh ${vps.user}@${vps.host} -p ${vps.port} -t 'tmux attach -t ${agent.currentSessionId}'`;
-    navigator.clipboard.writeText(cmd);
+    navigator.clipboard.writeText(cmd).then(() => {
+      alert("SSH command copied to clipboard!");
+    });
   };
 
   const handleDelete = async (agent: Agent) => {
