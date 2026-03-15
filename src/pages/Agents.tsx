@@ -1,15 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Plus, RefreshCw, Bot } from "lucide-react";
 import { useAgentStore, type Agent } from "../stores/agentStore";
 import { useRemoteStore, type Remote } from "../stores/remoteStore";
 import { tauriInvoke } from "../lib/tauri";
 import AgentCard from "../components/agents/AgentCard";
 import CreateAgentDialog from "../components/agents/CreateAgentDialog";
+import FileBrowser from "../components/remote/FileBrowser";
 
 export default function Agents() {
   const { agents, loading, fetch: fetchAgents } = useAgentStore();
   const { remotes, fetch: fetchRemotes } = useRemoteStore();
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // File browser state for agent start flow
+  const [fileBrowserOpen, setFileBrowserOpen] = useState(false);
+  const [pendingStartAgent, setPendingStartAgent] = useState<Agent | null>(
+    null,
+  );
 
   useEffect(() => {
     fetchAgents();
@@ -25,24 +32,41 @@ export default function Agents() {
       return;
     }
 
-    const workingDir = agent.defaultDir || "~";
-    const model = agent.defaultModel || undefined;
-
-    try {
-      // Ensure remote has been probed (needed to find claude binary path)
-      await tauriInvoke("probe_remote", { id: remoteId });
-
-      await tauriInvoke<string>("create_session", {
-        remoteId,
-        agentId: agent.id,
-        workingDir: workingDir,
-        model,
-      });
-      await fetchAgents();
-    } catch (e) {
-      alert(`Failed to start agent: ${e}`);
-    }
+    // Open file browser for directory selection
+    setPendingStartAgent(agent);
+    setFileBrowserOpen(true);
   };
+
+  const handleDirSelected = useCallback(
+    async (path: string) => {
+      setFileBrowserOpen(false);
+      const agent = pendingStartAgent;
+      setPendingStartAgent(null);
+
+      if (!agent) return;
+
+      const remoteId = agent.assignedRemoteId;
+      if (!remoteId) return;
+
+      const model = agent.defaultModel || undefined;
+
+      try {
+        // Ensure remote has been probed (needed to find claude binary path)
+        await tauriInvoke("probe_remote", { id: remoteId });
+
+        await tauriInvoke<string>("create_session", {
+          remoteId,
+          agentId: agent.id,
+          workingDir: path,
+          model,
+        });
+        await fetchAgents();
+      } catch (e) {
+        alert(`Failed to start agent: ${e}`);
+      }
+    },
+    [pendingStartAgent, fetchAgents],
+  );
 
   const handleStop = async (agent: Agent) => {
     if (!agent.currentSessionId || !agent.currentRemoteId) return;
@@ -151,6 +175,18 @@ export default function Agents() {
         onClose={() => setDialogOpen(false)}
         remoteList={remotes}
       />
+
+      {pendingStartAgent?.assignedRemoteId && (
+        <FileBrowser
+          open={fileBrowserOpen}
+          onClose={() => {
+            setFileBrowserOpen(false);
+            setPendingStartAgent(null);
+          }}
+          onSelect={handleDirSelected}
+          remoteId={pendingStartAgent.assignedRemoteId}
+        />
+      )}
     </div>
   );
 }

@@ -95,6 +95,24 @@ export default function StepEditPanel({
           className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500 resize-none disabled:opacity-50"
           placeholder="Enter the prompt for this step..."
         />
+        {otherSteps.length > 0 && (
+          <div className="text-[10px] text-zinc-500 bg-zinc-800/50 rounded p-2 space-y-0.5">
+            <p className="font-medium text-zinc-400">Available variables:</p>
+            <p>
+              <code className="text-indigo-400">{"{{prev.output}}"}</code> —
+              output from last dependency
+            </p>
+            {otherSteps.map((s) => {
+              const depAgent = agents.find((a) => a.id === s.agentId);
+              return (
+                <p key={s.id}>
+                  <code className="text-indigo-400">{`{{step.${s.id}.output}}`}</code>{" "}
+                  — {depAgent?.name || s.agentId}
+                </p>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Timeout */}

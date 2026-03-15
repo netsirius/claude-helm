@@ -1,4 +1,5 @@
 use chrono::Utc;
+use serde::Serialize;
 use std::fs;
 use tauri::State;
 
@@ -6,6 +7,8 @@ use crate::config::remote::{Remote, RemoteStatus};
 use crate::ssh::commands::exec_command;
 use crate::ssh::probe::{run_probe, ProbeResult};
 use crate::state::AppState;
+
+use super::helpers::get_handle;
 
 /// Return the full list of configured remotes.
 #[tauri::command]
@@ -265,4 +268,228 @@ pub async fn probe_remote(
     }
 
     Ok(probe)
+}
+
+// ─── Feature 1: Remote File Browser ─────────────────────────────────────────
+
+/// A single directory entry returned by `browse_remote_dir`.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DirEntry {
+    pub name: String,
+    pub entry_type: String, // "directory", "file", "symlink"
+    pub size: u64,
+    pub permissions: String,
+}
+
+/// Browse a directory on a remote machine via SSH.
+///
+/// Returns a list of entries (files, directories, symlinks) with metadata.
+/// Skips the `.` and `..` entries.
+#[tauri::command]
+pub async fn browse_remote_dir(
+    state: State<'_, AppState>,
+    remote_id: String,
+    path: String,
+) -> Result<Vec<DirEntry>, String> {
+    let handle = get_handle(&state, &remote_id).await?;
+
+    // Escape single quotes in the path for safe shell usage
+    let escaped_path = path.replace('\'', "'\\''");
+    let cmd = format!(
+        "ls -la --time-style=+%s '{}' 2>/dev/null || ls -la '{}' 2>/dev/null",
+        escaped_path, escaped_path
+    );
+
+    let result = exec_command(&handle, &cmd).await?;
+
+    if result.exit_code != 0 {
+        return Err(format!(
+            "Failed to list directory '{}': {}",
+            path,
+            result.stderr.trim()
+        ));
+    }
+
+    let mut entries = Vec::new();
+
+    for line in result.stdout.lines() {
+        let line = line.trim();
+        // Skip the total line and empty lines
+        if line.is_empty() || line.starts_with("total ") {
+            continue;
+        }
+
+        let parts: Vec<&str> = line.splitn(9, char::is_whitespace).collect();
+        if parts.len() < 9 {
+            // On macOS ls -la (without --time-style), the format has fewer/more fields.
+            // Try a simpler parse: permissions, links, owner, group, size, month, day, time/year, name
+            let parts2: Vec<&str> = line.split_whitespace().collect();
+            if parts2.len() < 9 {
+                continue;
+            }
+
+            let permissions = parts2[0];
+            let name = parts2[8..].join(" ");
+
+            // Skip . and ..
+            if name == "." || name == ".." {
+                continue;
+            }
+
+            let size: u64 = parts2[4].parse().unwrap_or(0);
+
+            let entry_type = if permissions.starts_with('d') {
+                "directory"
+            } else if permissions.starts_with('l') {
+                "symlink"
+            } else {
+                "file"
+            };
+
+            entries.push(DirEntry {
+                name,
+                entry_type: entry_type.to_string(),
+                size,
+                permissions: permissions.to_string(),
+            });
+            continue;
+        }
+
+        let permissions = parts[0];
+        // The last field is the name
+        let name = parts[8..].join(" ");
+
+        // Skip . and ..
+        if name == "." || name == ".." {
+            continue;
+        }
+
+        let size: u64 = parts[4].trim().parse().unwrap_or(0);
+
+        let entry_type = if permissions.starts_with('d') {
+            "directory"
+        } else if permissions.starts_with('l') {
+            "symlink"
+        } else {
+            "file"
+        };
+
+        entries.push(DirEntry {
+            name,
+            entry_type: entry_type.to_string(),
+            size,
+            permissions: permissions.to_string(),
+        });
+    }
+
+    Ok(entries)
+}
+
+// ─── Feature 2: Remote Claude Settings Editor ───────────────────────────────
+
+/// Read the Claude CLI settings JSON from a remote machine.
+///
+/// Returns the raw JSON string from `~/.claude/settings.json`.
+#[tauri::command]
+pub async fn read_remote_claude_config(
+    state: State<'_, AppState>,
+    remote_id: String,
+) -> Result<String, String> {
+    let handle = get_handle(&state, &remote_id).await?;
+
+    let result = exec_command(&handle, "cat ~/.claude/settings.json 2>/dev/null").await?;
+
+    if result.exit_code != 0 || result.stdout.trim().is_empty() {
+        // Return an empty JSON object if the file doesn't exist yet
+        return Ok("{}".to_string());
+    }
+
+    Ok(result.stdout)
+}
+
+/// Write the Claude CLI settings JSON to a remote machine.
+///
+/// Uses atomic write (write to temp file, then mv) with optional flock
+/// to avoid corrupting the settings file.
+#[tauri::command]
+pub async fn write_remote_claude_config(
+    state: State<'_, AppState>,
+    remote_id: String,
+    config: String,
+) -> Result<(), String> {
+    let handle = get_handle(&state, &remote_id).await?;
+
+    // Escape single quotes in the JSON config
+    let escaped_config = config.replace('\'', "'\\''");
+
+    // Ensure the directory exists, write atomically
+    let cmd = format!(
+        "mkdir -p ~/.claude && printf '%s' '{}' > ~/.claude/settings.json.tmp && mv ~/.claude/settings.json.tmp ~/.claude/settings.json",
+        escaped_config
+    );
+
+    let result = exec_command(&handle, &cmd).await?;
+
+    if result.exit_code != 0 {
+        return Err(format!(
+            "Failed to write Claude settings: {}",
+            result.stderr.trim()
+        ));
+    }
+
+    Ok(())
+}
+
+// ─── Feature 3: Auto-Install Claude ─────────────────────────────────────────
+
+/// Install the Claude CLI on a remote machine.
+///
+/// Runs the official Claude install script via curl, then re-probes
+/// the remote to update the cached probe result.
+#[tauri::command]
+pub async fn install_claude_remote(
+    state: State<'_, AppState>,
+    remote_id: String,
+) -> Result<String, String> {
+    let handle = get_handle(&state, &remote_id).await?;
+
+    let result = exec_command(
+        &handle,
+        "curl -fsSL https://claude.ai/install.sh | sh 2>&1",
+    )
+    .await?;
+
+    let output = format!("{}{}", result.stdout, result.stderr);
+
+    if result.exit_code != 0 {
+        return Err(format!("Claude install failed (exit {}): {}", result.exit_code, output.trim()));
+    }
+
+    // Re-probe the remote to update cached capabilities
+    let probe = run_probe(&handle).await?;
+
+    // Save updated probe result
+    {
+        let store = state.config.lock().await;
+        let probes_dir = store.base_dir().join("probes");
+        fs::create_dir_all(&probes_dir)
+            .map_err(|e| format!("Failed to create probes directory: {}", e))?;
+
+        let probe_json = serde_json::to_string_pretty(&probe)
+            .map_err(|e| format!("Failed to serialise probe result: {}", e))?;
+        let probe_path = probes_dir.join(format!("{}.json", remote_id));
+
+        if !probe_path.starts_with(&probes_dir) {
+            return Err(format!(
+                "Invalid remote ID '{}': results in path traversal",
+                remote_id
+            ));
+        }
+
+        fs::write(&probe_path, &probe_json)
+            .map_err(|e| format!("Failed to write probe file: {}", e))?;
+    }
+
+    Ok(output)
 }

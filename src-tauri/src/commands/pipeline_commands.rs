@@ -384,11 +384,19 @@ pub async fn execute_pipeline(
                 let _ = store.save("pipelines.json", &data);
             }
 
-            // Resolve prompt — replace {{prev.output}} with previous step outputs
+            // Resolve prompt — replace step-specific and prev output variables
             let mut prompt = step.prompt.clone();
-            for dep_id in &step.depends_on {
-                if let Some(dep_output) = step_outputs.get(dep_id) {
-                    prompt = prompt.replace("{{prev.output}}", dep_output);
+
+            // Replace step-specific references: {{step.<step_id>.output}}
+            for (id, output) in &step_outputs {
+                let placeholder = format!("{{{{step.{}.output}}}}", id);
+                prompt = prompt.replace(&placeholder, output);
+            }
+
+            // Support {{prev.output}} as the output of the last dependency
+            if let Some(last_dep) = step.depends_on.last() {
+                if let Some(output) = step_outputs.get(last_dep) {
+                    prompt = prompt.replace("{{prev.output}}", output);
                 }
             }
 
