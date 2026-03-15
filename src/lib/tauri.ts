@@ -15,6 +15,8 @@ const LOGGED_COMMANDS = [
   "delete_pipeline",
   "add_pipeline_step",
   "list_vps_extensions",
+  "execute_pipeline",
+  "cancel_pipeline",
 ];
 
 export async function tauriInvoke<T>(

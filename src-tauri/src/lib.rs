@@ -51,6 +51,9 @@ pub fn run() {
             commands::pipeline_commands::create_pipeline,
             commands::pipeline_commands::add_pipeline_step,
             commands::pipeline_commands::delete_pipeline,
+            commands::pipeline_commands::execute_pipeline,
+            commands::pipeline_commands::get_pipeline_status,
+            commands::pipeline_commands::cancel_pipeline,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
