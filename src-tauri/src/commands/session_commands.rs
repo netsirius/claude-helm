@@ -61,21 +61,30 @@ pub async fn create_session(
             .ok_or_else(|| format!("Claude CLI not found on remote '{}'", remote_id))?
     };
 
-    // Validate and build the claude command with optional model flag
-    // Trust prompt is auto-accepted via tmux send-keys in sessions::create_session
-    let claude_cmd = match model {
-        Some(ref m) => {
-            let model_re = regex_lite::Regex::new(r"^[a-zA-Z0-9_\-\.]+$").unwrap();
-            if !model_re.is_match(m) {
-                return Err(format!(
-                    "Invalid model name '{}': must match [a-zA-Z0-9_\\-.]+ ",
-                    m
-                ));
-            }
-            format!("{} --model {}", claude_path, m)
-        }
-        None => claude_path,
+    // Get agent name for session title
+    let agent_name = {
+        let agents = state.agents_config.lock().await;
+        agents.get(&agent_id).map(|a| a.name.clone()).unwrap_or_default()
     };
+
+    // Build the claude command with optional model and session name
+    let mut cmd_parts = vec![claude_path.clone()];
+    if let Some(ref m) = model {
+        let model_re = regex_lite::Regex::new(r"^[a-zA-Z0-9_\-\.]+$").unwrap();
+        if !model_re.is_match(m) {
+            return Err(format!(
+                "Invalid model name '{}': must match [a-zA-Z0-9_\\-.]+ ",
+                m
+            ));
+        }
+        cmd_parts.push(format!("--model {}", m));
+    }
+    if !agent_name.is_empty() {
+        // Sanitize agent name for shell (remove quotes)
+        let safe_name = agent_name.replace('\'', "").replace('"', "");
+        cmd_parts.push(format!("--name \"{}\"", safe_name));
+    }
+    let claude_cmd = cmd_parts.join(" ");
 
     // Use agent_id as the session name suffix
     let session_name = format!("cm-{}", agent_id.chars().take(8).collect::<String>());

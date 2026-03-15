@@ -1044,5 +1044,88 @@ server.tool(
   },
 );
 
+// ─────────────────────────────────────────────────────────────────────
+// 14. cm_start_remote_control — Get remote-control URL for an agent
+// ─────────────────────────────────────────────────────────────────────
+server.tool(
+  "cm_start_remote_control",
+  "Start remote-control for a running agent and return the URL. The URL can be opened in a browser to interact with the Claude session at claude.ai/code. If remote-control is already active, returns the existing URL.",
+  {
+    agentId: z.string().describe("UUID of the running agent"),
+  },
+  {
+    readOnlyHint: false,
+    destructiveHint: false,
+  },
+  async ({ agentId }) => {
+    const agent = findAgent(agentId);
+    if (!agent) {
+      return { content: [{ type: "text" as const, text: `Agent '${agentId}' not found` }], isError: true };
+    }
+    if (!agent.currentSessionId || !agent.currentRemoteId) {
+      return { content: [{ type: "text" as const, text: `Agent '${agent.name}' is not running.` }], isError: true };
+    }
+
+    const remote = findRemote(agent.currentRemoteId);
+    if (!remote) {
+      return { content: [{ type: "text" as const, text: `Remote '${agent.currentRemoteId}' not found` }], isError: true };
+    }
+
+    const sid = agent.currentSessionId;
+
+    // Check if URL already exists in pane output
+    const capture = await sshExec(remote.host, remote.port, remote.user, remote.sshKeyPath,
+      `tmux capture-pane -t ${sid} -p -S -50`);
+
+    let url = extractClaudeUrl(capture.stdout);
+
+    if (!url) {
+      // Send /remote-control
+      await sshExec(remote.host, remote.port, remote.user, remote.sshKeyPath,
+        `tmux send-keys -t ${sid} /remote-control Enter`);
+
+      // Poll for URL
+      for (let i = 0; i < 4; i++) {
+        await sleep(3000);
+        const result = await sshExec(remote.host, remote.port, remote.user, remote.sshKeyPath,
+          `tmux capture-pane -t ${sid} -p -S -50`);
+        url = extractClaudeUrl(result.stdout);
+        if (url) {
+          // Dismiss menu
+          await sshExec(remote.host, remote.port, remote.user, remote.sshKeyPath,
+            `tmux send-keys -t ${sid} Escape`);
+          break;
+        }
+      }
+    }
+
+    if (url) {
+      return {
+        content: [{
+          type: "text" as const,
+          text: `Remote Control active for '${agent.name}':\n${url}\n\nOpen this URL in your browser to interact with the session.`,
+        }],
+      };
+    }
+
+    return {
+      content: [{ type: "text" as const, text: `Could not get remote control URL. Make sure the agent is at the idle prompt.` }],
+      isError: true,
+    };
+  },
+);
+
+function extractClaudeUrl(text: string): string | null {
+  for (const line of text.split("\n")) {
+    const idx = line.indexOf("https://claude.ai/");
+    if (idx >= 0) {
+      const rest = line.substring(idx);
+      const end = rest.search(/\s/);
+      return end > 0 ? rest.substring(0, end).trim() : rest.trim();
+    }
+  }
+  return null;
+}
+
 const transport = new StdioServerTransport();
 await server.connect(transport);
