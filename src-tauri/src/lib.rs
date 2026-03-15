@@ -19,6 +19,10 @@ pub fn run() {
             commands::agent_commands::list_agents,
             commands::agent_commands::add_agent,
             commands::agent_commands::remove_agent,
+            commands::session_commands::list_sessions,
+            commands::session_commands::create_session,
+            commands::session_commands::stop_session,
+            commands::session_commands::capture_session_output,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
