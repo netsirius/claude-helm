@@ -2,6 +2,7 @@ use std::fs;
 use serde::Serialize;
 use tauri::State;
 
+use crate::ssh::commands::exec_command;
 use crate::ssh::probe::ProbeResult;
 use crate::ssh::sessions::{self, RemoteSession};
 use crate::state::AppState;
@@ -305,6 +306,55 @@ pub async fn open_session_terminal(
         .map_err(|e| format!("Failed to open Terminal: {}", e))?;
 
     Ok(())
+}
+
+/// Start remote-control mode for a Claude session and return the generated URL.
+///
+/// Sends `/remote-control` to the tmux session, waits for Claude to generate
+/// a URL, then captures the pane output and extracts the URL.
+#[tauri::command]
+pub async fn start_remote_control(
+    state: State<'_, AppState>,
+    remote_id: String,
+    session_id: String,
+) -> Result<String, String> {
+    let handle = get_handle(&state, &remote_id).await?;
+
+    // Send /remote-control command to the Claude session via tmux
+    let send_cmd = format!(
+        "tmux send-keys -t '{}' '/remote-control' Enter",
+        session_id
+    );
+    exec_command(&handle, &send_cmd).await?;
+
+    // Wait for Claude to generate the URL
+    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+
+    // Capture the pane output and look for the URL
+    let output = sessions::capture_pane(&handle, &session_id, 20).await?;
+
+    // Look for a URL pattern like https://claude.ai/code/... or https://claude.ai/remote/...
+    let url = output
+        .lines()
+        .filter_map(|line| {
+            let trimmed = line.trim();
+            if trimmed.contains("claude.ai/code") || trimmed.contains("claude.ai/remote") {
+                // Extract URL from the line
+                trimmed
+                    .split_whitespace()
+                    .find(|word| word.starts_with("http"))
+                    .map(|s| s.to_string())
+            } else {
+                None
+            }
+        })
+        .next()
+        .ok_or_else(|| {
+            "Could not find remote control URL. The session may not support remote-control."
+                .to_string()
+        })?;
+
+    Ok(url)
 }
 
 /// Helper: look up connection details for a remote and obtain a pooled SSH handle.

@@ -7,6 +7,7 @@ import {
   Loader2,
   FolderOpen,
   Terminal,
+  Globe,
   Brain,
   Wrench,
   ChevronRight,
@@ -30,6 +31,7 @@ interface AgentCardProps {
   onStop: (agent: Agent) => Promise<void>;
   onOpenTerminal: (agent: Agent, remote: Remote) => void;
   onCopySSH: (agent: Agent, remote: Remote) => void;
+  onOpenRemote: (agent: Agent) => Promise<void>;
   onDelete: (agent: Agent) => Promise<void>;
 }
 
@@ -104,6 +106,7 @@ export default function AgentCard({
   onStop,
   onOpenTerminal,
   onCopySSH,
+  onOpenRemote,
   onDelete,
 }: AgentCardProps) {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -222,6 +225,19 @@ export default function AgentCard({
                 >
                   <Terminal size={14} />
                   Open Terminal
+                </button>
+                <button
+                  onClick={() => handleAction("remote", () => onOpenRemote(agent))}
+                  disabled={actionLoading !== null}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#6a9bcc]/20 hover:bg-[#6a9bcc]/30 text-[#6a9bcc] transition-colors disabled:opacity-50"
+                  title="Open in Claude via remote-control URL"
+                >
+                  {actionLoading === "remote" ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Globe size={14} />
+                  )}
+                  Open in Claude
                 </button>
                 <button
                   onClick={() => onCopySSH(agent, remote)}

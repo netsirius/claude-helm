@@ -182,6 +182,19 @@ export default function Agents() {
     });
   };
 
+  const handleOpenRemote = async (agent: Agent) => {
+    if (!agent.currentSessionId || !agent.currentRemoteId) return;
+    try {
+      const url = await tauriInvoke<string>("start_remote_control", {
+        remoteId: agent.currentRemoteId,
+        sessionId: agent.currentSessionId,
+      });
+      window.open(url, "_blank");
+    } catch (e) {
+      alert(`Failed to start remote control: ${e}`);
+    }
+  };
+
   const handleDelete = async (agent: Agent) => {
     // Stop session first if running
     if (agent.currentSessionId && agent.currentRemoteId) {
@@ -259,6 +272,7 @@ export default function Agents() {
               onStop={handleStop}
               onOpenTerminal={handleOpenTerminal}
               onCopySSH={handleCopySSH}
+              onOpenRemote={handleOpenRemote}
               onDelete={handleDelete}
             />
           ))}

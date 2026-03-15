@@ -53,6 +53,7 @@ pub fn run() {
             commands::session_commands::capture_session_output,
             commands::session_commands::get_agent_activity,
             commands::session_commands::open_session_terminal,
+            commands::session_commands::start_remote_control,
             commands::extension_commands::list_remote_extensions,
             commands::pipeline_commands::list_pipelines,
             commands::pipeline_commands::create_pipeline,
