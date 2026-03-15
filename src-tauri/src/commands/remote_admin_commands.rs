@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use crate::ssh::commands::exec_command;
@@ -63,6 +63,16 @@ pub struct RemoteAgent {
 pub struct PluginInstallResult {
     pub success: bool,
     pub output: String,
+}
+
+/// A skill from the skills.sh marketplace search API.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MarketplaceSkill {
+    pub name: String,
+    pub owner_repo: String,
+    pub installs: u64,
+    pub description: String,
 }
 
 // ─── Commands ────────────────────────────────────────────────────────────────
@@ -602,4 +612,126 @@ pub async fn toggle_remote_extension(
     }
 
     Ok(())
+}
+
+/// Search the skills.sh marketplace for plugins.
+///
+/// Uses `curl` to fetch results from `https://skills.sh/api/search?q=<query>`
+/// and parses the JSON response into `MarketplaceSkill` items.
+#[tauri::command]
+pub async fn search_skills_marketplace(
+    query: String,
+) -> Result<Vec<MarketplaceSkill>, String> {
+    let trimmed = query.trim().to_string();
+    if trimmed.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    // URL-encode the query for safety
+    let encoded_query: String = trimmed
+        .chars()
+        .map(|c| match c {
+            'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' | '.' | '~' => c.to_string(),
+            ' ' => "+".to_string(),
+            _ => format!("%{:02X}", c as u32),
+        })
+        .collect();
+
+    let url = format!("https://skills.sh/api/search?q={}", encoded_query);
+
+    let output = std::process::Command::new("curl")
+        .args(["-s", "-m", "10", &url])
+        .output()
+        .map_err(|e| format!("Failed to execute curl: {}", e))?;
+
+    if !output.status.success() {
+        return Err(format!(
+            "Marketplace search failed (exit {})",
+            output.status.code().unwrap_or(-1)
+        ));
+    }
+
+    let body = String::from_utf8_lossy(&output.stdout);
+    let body = body.trim();
+
+    if body.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    // Parse the response — skills.sh returns a JSON array or object with results.
+    // We try several shapes to be resilient to API changes.
+    let parsed: serde_json::Value = serde_json::from_str(body)
+        .map_err(|e| format!("Failed to parse marketplace response: {}", e))?;
+
+    let mut skills = Vec::new();
+
+    // Shape 1: top-level array of result objects
+    // Shape 2: { "results": [...] } or { "skills": [...] } or { "data": [...] }
+    let items = if let Some(arr) = parsed.as_array() {
+        arr.clone()
+    } else if let Some(arr) = parsed.get("results").and_then(|v| v.as_array()) {
+        arr.clone()
+    } else if let Some(arr) = parsed.get("skills").and_then(|v| v.as_array()) {
+        arr.clone()
+    } else if let Some(arr) = parsed.get("data").and_then(|v| v.as_array()) {
+        arr.clone()
+    } else {
+        return Ok(Vec::new());
+    };
+
+    for item in &items {
+        // Extract name — try several field names
+        let name = item
+            .get("name")
+            .or_else(|| item.get("title"))
+            .or_else(|| item.get("skill_name"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+
+        // Extract owner/repo path
+        let owner_repo = item
+            .get("owner_repo")
+            .or_else(|| item.get("ownerRepo"))
+            .or_else(|| item.get("repo"))
+            .or_else(|| item.get("path"))
+            .or_else(|| item.get("slug"))
+            .or_else(|| item.get("full_name"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+
+        // Extract install count
+        let installs = item
+            .get("installs")
+            .or_else(|| item.get("install_count"))
+            .or_else(|| item.get("installCount"))
+            .or_else(|| item.get("downloads"))
+            .and_then(|v| v.as_u64().or_else(|| v.as_f64().map(|f| f as u64)))
+            .unwrap_or(0);
+
+        // Extract description
+        let description = item
+            .get("description")
+            .or_else(|| item.get("summary"))
+            .or_else(|| item.get("short_description"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+
+        if !name.is_empty() || !owner_repo.is_empty() {
+            skills.push(MarketplaceSkill {
+                name: if name.is_empty() {
+                    owner_repo.split('/').last().unwrap_or("").to_string()
+                } else {
+                    name
+                },
+                owner_repo,
+                installs,
+                description,
+            });
+        }
+    }
+
+    Ok(skills)
 }

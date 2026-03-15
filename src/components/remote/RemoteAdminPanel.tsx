@@ -14,6 +14,9 @@ import {
   Puzzle,
   Package,
   Plus,
+  Search,
+  Download,
+  Store,
 } from "lucide-react";
 import { tauriInvoke } from "../../lib/tauri";
 import ClaudeSettingsEditor from "./ClaudeSettingsEditor";
@@ -57,6 +60,13 @@ interface RemoteAgent {
 interface PluginInstallResult {
   success: boolean;
   output: string;
+}
+
+interface MarketplaceSkill {
+  name: string;
+  ownerRepo: string;
+  installs: number;
+  description: string;
 }
 
 type TabKey = "plugins" | "skills" | "mcps" | "hooks" | "agents" | "settings";
@@ -366,18 +376,62 @@ function PluginList({
   onError: (err: string) => void;
 }) {
   const [showInstall, setShowInstall] = useState(false);
+  const [installMode, setInstallMode] = useState<"manual" | "marketplace">(
+    "marketplace",
+  );
   const [installInput, setInstallInput] = useState("");
   const [installing, setInstalling] = useState(false);
+  const [installingSkillId, setInstallingSkillId] = useState<string | null>(
+    null,
+  );
   const [installOutput, setInstallOutput] = useState<{
     success: boolean;
     output: string;
   } | null>(null);
 
-  const handleInstall = async () => {
-    const trimmed = installInput.trim();
+  // Marketplace state
+  const [marketplaceQuery, setMarketplaceQuery] = useState("");
+  const [marketplaceResults, setMarketplaceResults] = useState<
+    MarketplaceSkill[]
+  >([]);
+  const [marketplaceLoading, setMarketplaceLoading] = useState(false);
+  const [marketplaceSearched, setMarketplaceSearched] = useState(false);
+
+  // Debounced marketplace search
+  useEffect(() => {
+    const trimmed = marketplaceQuery.trim();
+    if (!trimmed) {
+      setMarketplaceResults([]);
+      setMarketplaceSearched(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setMarketplaceLoading(true);
+      setMarketplaceSearched(true);
+      try {
+        const results = await tauriInvoke<MarketplaceSkill[]>(
+          "search_skills_marketplace",
+          { query: trimmed },
+        );
+        setMarketplaceResults(results);
+      } catch (e) {
+        onError(typeof e === "string" ? e : String(e));
+        setMarketplaceResults([]);
+      } finally {
+        setMarketplaceLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [marketplaceQuery, onError]);
+
+  const handleInstall = async (skillId?: string) => {
+    const trimmed = skillId || installInput.trim();
     if (!trimmed) return;
 
     setInstalling(true);
+    if (skillId) setInstallingSkillId(skillId);
     setInstallOutput(null);
     try {
       const result = await tauriInvoke<PluginInstallResult>(
@@ -386,14 +440,14 @@ function PluginList({
       );
       setInstallOutput({ success: result.success, output: result.output });
       if (result.success) {
-        setInstallInput("");
-        // Refresh the plugin list after successful install
+        if (!skillId) setInstallInput("");
         onRefresh();
       }
     } catch (e) {
       onError(typeof e === "string" ? e : String(e));
     } finally {
       setInstalling(false);
+      setInstallingSkillId(null);
     }
   };
 
@@ -408,6 +462,12 @@ function PluginList({
     } catch {
       return iso;
     }
+  };
+
+  const formatInstalls = (count: number): string => {
+    if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
+    if (count >= 1_000) return `${(count / 1_000).toFixed(1)}K`;
+    return count.toString();
   };
 
   return (
@@ -429,41 +489,175 @@ function PluginList({
       {/* Install input area */}
       {showInstall && (
         <div className="bg-[#141413] border border-[#2a2a28] rounded-xl p-4 space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-[#b0aea5] mb-1.5">
-              Plugin ID (owner/repo format from skills.sh)
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={installInput}
-                onChange={(e) => setInstallInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleInstall();
-                }}
-                placeholder="e.g. anthropics/claude-code-skills"
-                className="flex-1 px-3 py-2 text-sm rounded-lg bg-[#1e1e1c] border border-[#2a2a28] text-[#faf9f5] placeholder:text-[#b0aea5]/40 focus:outline-none focus:border-[#d97757]"
-                disabled={installing}
-              />
-              <button
-                onClick={handleInstall}
-                disabled={installing || !installInput.trim()}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50"
-              >
-                {installing ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <Package size={14} />
-                )}
-                {installing ? "Installing..." : "Install"}
-              </button>
-            </div>
-            <p className="mt-1.5 text-xs text-[#b0aea5]/40">
-              Uses npx skillsadd to install plugins from skills.sh marketplace
-            </p>
+          {/* Tab toggle: Manual / Marketplace */}
+          <div className="flex items-center gap-1 p-0.5 bg-[#1e1e1c] rounded-lg w-fit">
+            <button
+              onClick={() => setInstallMode("manual")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                installMode === "manual"
+                  ? "bg-[#2a2a28] text-[#d97757]"
+                  : "text-[#b0aea5] hover:text-[#e8e6dc]"
+              }`}
+            >
+              <Package size={12} />
+              Manual
+            </button>
+            <button
+              onClick={() => setInstallMode("marketplace")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                installMode === "marketplace"
+                  ? "bg-[#2a2a28] text-[#d97757]"
+                  : "text-[#b0aea5] hover:text-[#e8e6dc]"
+              }`}
+            >
+              <Store size={12} />
+              Marketplace
+            </button>
           </div>
 
-          {/* Install output */}
+          {/* Manual install */}
+          {installMode === "manual" && (
+            <div>
+              <label className="block text-xs font-medium text-[#b0aea5] mb-1.5">
+                Plugin ID (owner/repo format from skills.sh)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={installInput}
+                  onChange={(e) => setInstallInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleInstall();
+                  }}
+                  placeholder="e.g. anthropics/claude-code-skills"
+                  className="flex-1 px-3 py-2 text-sm rounded-lg bg-[#1e1e1c] border border-[#2a2a28] text-[#faf9f5] placeholder:text-[#b0aea5]/40 focus:outline-none focus:border-[#d97757]"
+                  disabled={installing}
+                />
+                <button
+                  onClick={() => handleInstall()}
+                  disabled={installing || !installInput.trim()}
+                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50"
+                >
+                  {installing && !installingSkillId ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Package size={14} />
+                  )}
+                  {installing && !installingSkillId
+                    ? "Installing..."
+                    : "Install"}
+                </button>
+              </div>
+              <p className="mt-1.5 text-xs text-[#b0aea5]/40">
+                Uses npx skillsadd to install plugins from skills.sh
+                marketplace
+              </p>
+            </div>
+          )}
+
+          {/* Marketplace browser */}
+          {installMode === "marketplace" && (
+            <div className="space-y-3">
+              {/* Search input */}
+              <div className="relative">
+                <Search
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#b0aea5]/40"
+                />
+                <input
+                  type="text"
+                  value={marketplaceQuery}
+                  onChange={(e) => setMarketplaceQuery(e.target.value)}
+                  placeholder="Search skills.sh..."
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg bg-[#141413] border border-[#2a2a28] text-[#faf9f5] placeholder:text-[#b0aea5]/40 focus:outline-none focus:border-[#d97757] transition-colors"
+                />
+                {marketplaceLoading && (
+                  <Loader2
+                    size={14}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#b0aea5]/40"
+                  />
+                )}
+              </div>
+
+              {/* Results */}
+              {!marketplaceSearched && !marketplaceQuery.trim() ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Store size={24} className="text-[#b0aea5]/40 mb-2" />
+                  <p className="text-xs text-[#b0aea5]/60">
+                    Search skills.sh to find plugins
+                  </p>
+                </div>
+              ) : marketplaceLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2
+                    size={18}
+                    className="animate-spin text-[#b0aea5]"
+                  />
+                </div>
+              ) : marketplaceResults.length === 0 && marketplaceSearched ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Search size={24} className="text-[#b0aea5]/40 mb-2" />
+                  <p className="text-xs text-[#b0aea5]/60">
+                    No results found for &ldquo;{marketplaceQuery}&rdquo;
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {marketplaceResults.map((skill) => {
+                    const isInstalling =
+                      installing && installingSkillId === skill.ownerRepo;
+                    return (
+                      <div
+                        key={skill.ownerRepo || skill.name}
+                        className="flex items-start gap-3 px-4 py-3 bg-[#141413] border border-[#2a2a28] rounded-xl hover:border-[#3a3a37] transition-colors"
+                      >
+                        <div className="p-1.5 bg-[#2a2a28] rounded-lg mt-0.5">
+                          <Zap size={14} className="text-[#d97757]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-sm font-medium text-[#faf9f5] truncate">
+                              {skill.name}
+                            </h4>
+                            {skill.installs > 0 && (
+                              <span className="flex items-center gap-1 text-xs text-[#b0aea5] whitespace-nowrap">
+                                <Download size={10} />
+                                {formatInstalls(skill.installs)}
+                              </span>
+                            )}
+                          </div>
+                          {skill.ownerRepo && (
+                            <p className="text-xs text-[#b0aea5]/60 truncate font-mono">
+                              {skill.ownerRepo}
+                            </p>
+                          )}
+                          {skill.description && (
+                            <p className="text-xs text-[#b0aea5]/80 mt-1 line-clamp-2">
+                              {skill.description}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleInstall(skill.ownerRepo)}
+                          disabled={installing}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50 whitespace-nowrap mt-0.5"
+                        >
+                          {isInstalling ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <Download size={12} />
+                          )}
+                          {isInstalling ? "Installing..." : "Install"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Install output (shared between both modes) */}
           {installOutput && (
             <div
               className={`px-3 py-2 rounded-lg text-xs font-mono whitespace-pre-wrap ${
