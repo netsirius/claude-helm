@@ -33,3 +33,8 @@ src-tauri/target/
 .superpowers/
 *.pen
 *.docx
+v3-final/
+
+# MCP server build
+mcp-server/node_modules/
+mcp-server/dist/
