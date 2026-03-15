@@ -72,6 +72,9 @@ pub fn run() {
             commands::remote_admin_commands::search_skills_marketplace,
             commands::analytics_commands::get_remote_usage_stats,
             commands::analytics_commands::get_session_heatmap,
+            commands::mcp_commands::start_mcp_server,
+            commands::mcp_commands::stop_mcp_server,
+            commands::mcp_commands::mcp_server_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
