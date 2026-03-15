@@ -51,8 +51,7 @@ pub async fn create_session(
     };
 
     // Validate and build the claude command with optional model flag
-    // --dangerously-skip-permissions bypasses the interactive trust prompt
-    // that would otherwise block the tmux session
+    // Trust prompt is auto-accepted via tmux send-keys in sessions::create_session
     let claude_cmd = match model {
         Some(ref m) => {
             let model_re = regex_lite::Regex::new(r"^[a-zA-Z0-9_\-\.]+$").unwrap();
@@ -62,9 +61,9 @@ pub async fn create_session(
                     m
                 ));
             }
-            format!("{} --dangerously-skip-permissions --model {}", claude_path, m)
+            format!("{} --model {}", claude_path, m)
         }
-        None => format!("{} --dangerously-skip-permissions", claude_path),
+        None => claude_path,
     };
 
     // Use agent_id as the session name suffix

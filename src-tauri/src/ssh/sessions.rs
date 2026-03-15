@@ -174,6 +174,16 @@ pub async fn create_session(
         ));
     }
 
+    // Wait for Claude to start and show the trust prompt, then auto-accept it.
+    // The trust dialog has "Yes, I trust this folder" pre-selected (option 1).
+    // We send Enter to confirm, then a second Enter after a brief pause
+    // in case there's an additional confirmation step.
+    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+    let accept_cmd = format!("tmux send-keys -t '{}' Enter", prefixed);
+    let _ = exec_command(handle, &accept_cmd).await;
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    let _ = exec_command(handle, &accept_cmd).await;
+
     Ok(prefixed)
 }
 
