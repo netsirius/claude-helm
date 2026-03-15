@@ -189,7 +189,13 @@ export default function Agents() {
         remoteId: agent.currentRemoteId,
         sessionId: agent.currentSessionId,
       });
-      window.open(url, "_blank");
+      await navigator.clipboard.writeText(url);
+      try {
+        const { openUrl } = await import("@tauri-apps/plugin-opener");
+        await openUrl(url);
+      } catch {
+        window.open(url, "_blank");
+      }
     } catch (e) {
       alert(`Failed to start remote control: ${e}`);
     }
