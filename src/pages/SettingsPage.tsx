@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Settings, Terminal, RefreshCw, Power, PowerOff, Loader2, Plug } from "lucide-react";
+import { Settings, Terminal, RefreshCw, Power, PowerOff, Loader2, Plug, ChevronDown, Eye, Send, List, PlusCircle, Play, Square, Activity, Monitor, GitBranch } from "lucide-react";
 import { tauriInvoke } from "../lib/tauri";
 
 interface SettingRow {
@@ -39,6 +39,68 @@ function SettingSection({
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+const MCP_TOOLS = [
+  { name: "cm_list_remotes", desc: "List all configured remote machines", icon: List, readOnly: true },
+  { name: "cm_add_remote", desc: "Add a new remote machine (VPS, PC, VM, Docker)", icon: PlusCircle, readOnly: false },
+  { name: "cm_test_remote", desc: "Test SSH connection to a remote", icon: Monitor, readOnly: false },
+  { name: "cm_list_agents", desc: "List all configured agents with status", icon: List, readOnly: true },
+  { name: "cm_create_agent", desc: "Create a new named agent with role and model", icon: PlusCircle, readOnly: false },
+  { name: "cm_start_agent", desc: "Start an agent session on its assigned remote", icon: Play, readOnly: false },
+  { name: "cm_stop_agent", desc: "Stop a running agent session", icon: Square, readOnly: false },
+  { name: "cm_get_agent_activity", desc: "See what an agent is doing (waiting/thinking/working)", icon: Activity, readOnly: true },
+  { name: "cm_send_prompt", desc: "Send a prompt or command to a running agent", icon: Send, readOnly: false },
+  { name: "cm_watch_agent", desc: "Capture terminal output of a running agent", icon: Eye, readOnly: true },
+  { name: "cm_list_sessions", desc: "List all tmux sessions on a remote", icon: List, readOnly: true },
+  { name: "cm_list_pipelines", desc: "List all configured pipelines", icon: GitBranch, readOnly: true },
+  { name: "cm_run_pipeline", desc: "Execute a multi-agent pipeline", icon: Play, readOnly: false },
+];
+
+function ToolsList() {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="py-3">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center justify-between w-full text-left"
+      >
+        <span className="text-sm text-[#b0aea5]">Tools available</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-[#faf9f5] font-mono">{MCP_TOOLS.length}</span>
+          <ChevronDown
+            size={14}
+            className={`text-[#b0aea5] transition-transform ${expanded ? "rotate-180" : ""}`}
+          />
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="mt-3 space-y-1">
+          {MCP_TOOLS.map((tool) => (
+            <div
+              key={tool.name}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#141413] border border-[#2a2a28]"
+            >
+              <tool.icon size={14} className="text-[#d97757] shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-mono text-[#faf9f5]">{tool.name}</span>
+                <p className="text-[10px] text-[#b0aea5] truncate">{tool.desc}</p>
+              </div>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${
+                tool.readOnly
+                  ? "bg-[#6a9bcc]/10 text-[#6a9bcc]"
+                  : "bg-[#d97757]/10 text-[#d97757]"
+              }`}>
+                {tool.readOnly ? "read" : "write"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -142,10 +204,7 @@ function McpSection() {
         </span>
       </div>
 
-      <div className="flex items-center justify-between py-3">
-        <span className="text-sm text-[#b0aea5]">Tools available</span>
-        <span className="text-sm text-[#faf9f5] font-mono">13</span>
-      </div>
+      <ToolsList />
 
       {message && (
         <div className={`mt-3 px-3 py-2 rounded-lg text-xs font-medium ${
