@@ -310,9 +310,8 @@ pub async fn open_session_terminal(
 
 /// Start remote-control mode for a Claude session and return the generated URL.
 ///
-/// If remote-control is already active, extracts the existing URL.
-/// Otherwise sends `/remote-control` and waits for the URL to appear.
-/// Handles the interactive menu that appears when remote-control is already on.
+/// Uses a shell pipeline on the remote to extract the URL directly,
+/// avoiding ANSI parsing issues with tmux capture-pane.
 #[tauri::command]
 pub async fn start_remote_control(
     state: State<'_, AppState>,
@@ -321,78 +320,38 @@ pub async fn start_remote_control(
 ) -> Result<String, String> {
     let handle = get_handle(&state, &remote_id).await?;
 
-    // Check if remote-control is already active by scanning current pane output
-    let pre_output = sessions::capture_pane(&handle, &session_id, 50).await?;
-    let pre_clean = strip_ansi(&pre_output);
+    // First: check if remote-control is already active by grep'ing the pane
+    let grep_cmd = format!(
+        "tmux capture-pane -t '{}' -p -S -50 2>/dev/null | sed 's/\\x1b\\[[0-9;]*[a-zA-Z]//g' | grep -oE 'https://claude\\.ai/[^ ]+' | head -1",
+        session_id
+    );
+    let result = exec_command(&handle, &grep_cmd).await?;
+    let existing_url = result.stdout.trim().to_string();
 
-    if let Some(url) = extract_claude_url(&pre_clean) {
-        // Already active — if menu is showing, dismiss it with Enter (selects "Continue")
-        dismiss_rc_menu(&handle, &session_id, &pre_clean).await;
-        return Ok(url);
+    if !existing_url.is_empty() && existing_url.starts_with("https://") {
+        return Ok(existing_url);
     }
 
-    // Not active yet — send /remote-control
+    // Not active — send /remote-control
     let send_cmd = format!("tmux send-keys -t '{}' '/remote-control' Enter", session_id);
     exec_command(&handle, &send_cmd).await?;
 
-    // Poll for the URL (up to 15 seconds, 3s intervals)
-    for _ in 0..5 {
+    // Poll with grep (up to 12 seconds)
+    for _ in 0..4 {
         tokio::time::sleep(std::time::Duration::from_secs(3)).await;
 
-        let output = sessions::capture_pane(&handle, &session_id, 50).await?;
-        let clean = strip_ansi(&output);
+        let result = exec_command(&handle, &grep_cmd).await?;
+        let url = result.stdout.trim().to_string();
 
-        if let Some(url) = extract_claude_url(&clean) {
-            // Dismiss any menu that appeared
-            dismiss_rc_menu(&handle, &session_id, &clean).await;
+        if !url.is_empty() && url.starts_with("https://") {
+            // Dismiss any interactive menu with Esc
+            let esc_cmd = format!("tmux send-keys -t '{}' Escape", session_id);
+            let _ = exec_command(&handle, &esc_cmd).await;
             return Ok(url);
         }
     }
 
-    Err("Could not find remote control URL after 15 seconds. Make sure the session is at Claude's idle prompt (❯).".to_string())
-}
-
-/// Dismiss the remote-control interactive menu if it's showing.
-/// The menu has options: Disconnect / Show QR / Continue.
-/// "Continue" is usually pre-selected, so Enter dismisses it.
-/// If "Enter to select" or "Esc to continue" is visible, we send the right key.
-async fn dismiss_rc_menu(
-    handle: &crate::ssh::connection::SharedHandle,
-    session_id: &str,
-    output: &str,
-) {
-    if output.contains("Disconnect this session")
-        || output.contains("Show QR")
-        || output.contains("Enter to select")
-    {
-        // Send Escape first (safest — "Esc to continue" dismisses without selecting)
-        let cmd = format!("tmux send-keys -t '{}' Escape", session_id);
-        let _ = exec_command(handle, &cmd).await;
-    }
-}
-
-/// Strip ANSI escape codes from a string.
-fn strip_ansi(input: &str) -> String {
-    let re = regex_lite::Regex::new(r"\x1b\[[0-9;]*[a-zA-Z]").unwrap();
-    re.replace_all(input, "").to_string()
-}
-
-/// Extract a claude.ai URL from text.
-fn extract_claude_url(text: &str) -> Option<String> {
-    for line in text.lines() {
-        let trimmed = line.trim();
-        // Look for the URL directly
-        if let Some(start) = trimmed.find("https://claude.ai/") {
-            let url_part = &trimmed[start..];
-            // Take until whitespace, comma, period at end, or end of line
-            let end = url_part.find(|c: char| c.is_whitespace() || c == ',' || c == ')').unwrap_or(url_part.len());
-            let url = url_part[..end].trim_end_matches('.');
-            if url.contains("/code/") || url.contains("/remote/") || url.contains("/session") {
-                return Some(url.to_string());
-            }
-        }
-    }
-    None
+    Err("Could not find remote control URL. Make sure the session is at Claude's idle prompt (❯).".to_string())
 }
 
 /// Helper: look up connection details for a remote and obtain a pooled SSH handle.
