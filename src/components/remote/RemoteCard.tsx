@@ -275,47 +275,46 @@ export default function RemoteCard({ remote, onEdit }: RemoteCardProps) {
           </div>
         )}
 
-        <div className="flex items-center gap-2 mt-auto pt-2 border-t border-[#2a2a28]">
-          <button
-            onClick={handleTest}
-            disabled={testing}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50"
-          >
-            {testing ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Wifi size={14} />
-            )}
-            Test
-          </button>
-          <button
-            onClick={() => onEdit?.(remote)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#b0aea5] hover:text-[#faf9f5] transition-colors"
-          >
-            <Pencil size={14} />
-            Edit
-          </button>
-          <button
-            onClick={() => setAdminOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#b0aea5] hover:text-[#faf9f5] transition-colors"
-          >
-            <Wrench size={14} />
-            Manage
-          </button>
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#b0aea5] hover:text-[#faf9f5] transition-colors"
-          >
-            <Settings size={14} />
-            Settings
-          </button>
-          <button
-            onClick={handleDelete}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#c45c4a]/20 hover:text-[#c45c4a] text-[#b0aea5] transition-colors ml-auto"
-          >
-            <Trash2 size={14} />
-            Delete
-          </button>
+        <div className="mt-auto pt-3 border-t border-[#2a2a28] space-y-2">
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={handleTest}
+              disabled={testing}
+              className="flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50"
+            >
+              {testing ? <Loader2 size={14} className="animate-spin" /> : <Wifi size={14} />}
+              Test
+            </button>
+            <button
+              onClick={() => onEdit?.(remote)}
+              className="flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#b0aea5] hover:text-[#faf9f5] transition-colors"
+            >
+              <Pencil size={14} />
+              Edit
+            </button>
+            <button
+              onClick={() => setAdminOpen(true)}
+              className="flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#b0aea5] hover:text-[#faf9f5] transition-colors"
+            >
+              <Wrench size={14} />
+              Manage
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#b0aea5] hover:text-[#faf9f5] transition-colors"
+            >
+              <Settings size={14} />
+              Settings
+            </button>
+            <button
+              onClick={handleDelete}
+              className="py-2 px-3 text-xs rounded-lg bg-[#2a2a28] hover:bg-[#c45c4a]/20 hover:text-[#c45c4a] text-[#b0aea5] transition-colors"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
       </div>
 

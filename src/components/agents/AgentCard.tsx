@@ -173,97 +173,92 @@ export default function AgentCard({
       {isRunning && activity && <ActivityIndicator activity={activity} />}
 
       {/* Actions */}
-      <div className="flex items-center gap-2 mt-auto pt-2 border-t border-[#2a2a28]">
+      <div className="mt-auto pt-3 border-t border-[#2a2a28] space-y-2">
         {isIdle && (
-          <>
+          <div className="flex gap-2">
             <button
               onClick={() => handleAction("start", () => onStart(agent))}
               disabled={actionLoading !== null}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors disabled:opacity-50"
             >
-              {actionLoading === "start" ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Play size={14} />
-              )}
+              {actionLoading === "start" ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
               Start
             </button>
             {onStartWithBrowse && (
               <button
                 onClick={() => onStartWithBrowse(agent)}
                 disabled={actionLoading !== null}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#e8e6dc] transition-colors disabled:opacity-50"
-                title="Choose working directory before starting"
+                className="py-2 px-3 text-xs rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#e8e6dc] transition-colors disabled:opacity-50"
+                title="Choose working directory"
               >
                 <FolderOpen size={14} />
               </button>
             )}
-          </>
+            <button
+              onClick={() => handleAction("delete", () => onDelete(agent))}
+              disabled={actionLoading !== null}
+              className="py-2 px-3 text-xs rounded-lg bg-[#2a2a28] hover:bg-[#c45c4a]/20 hover:text-[#c45c4a] text-[#b0aea5] transition-colors disabled:opacity-50"
+              title="Delete agent"
+            >
+              {actionLoading === "delete" ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            </button>
+          </div>
         )}
 
         {isRunning && (
           <>
-            <button
-              onClick={() => handleAction("stop", () => onStop(agent))}
-              disabled={actionLoading !== null}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#c45c4a]/20 hover:bg-[#c45c4a]/40 text-[#c45c4a] transition-colors disabled:opacity-50"
-            >
-              {actionLoading === "stop" ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Square size={14} />
+            <div className="grid grid-cols-2 gap-2">
+              {remote && (
+                <>
+                  <button
+                    onClick={() => onOpenTerminal(agent, remote)}
+                    className="flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors"
+                    title="Open in Terminal.app"
+                  >
+                    <Terminal size={14} />
+                    Terminal
+                  </button>
+                  <button
+                    onClick={() => handleAction("remote", () => onOpenRemote(agent))}
+                    disabled={actionLoading !== null}
+                    className="flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg bg-[#6a9bcc]/20 hover:bg-[#6a9bcc]/30 text-[#6a9bcc] transition-colors disabled:opacity-50"
+                    title="Open in Claude web"
+                  >
+                    {actionLoading === "remote" ? <Loader2 size={14} className="animate-spin" /> : <Globe size={14} />}
+                    Claude Web
+                  </button>
+                </>
               )}
-              Stop
-            </button>
-
-            {remote && (
-              <>
-                <button
-                  onClick={() => onOpenTerminal(agent, remote)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors"
-                  title="Open session in Terminal.app"
-                >
-                  <Terminal size={14} />
-                  Open Terminal
-                </button>
-                <button
-                  onClick={() => handleAction("remote", () => onOpenRemote(agent))}
-                  disabled={actionLoading !== null}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#6a9bcc]/20 hover:bg-[#6a9bcc]/30 text-[#6a9bcc] transition-colors disabled:opacity-50"
-                  title="Open in Claude via remote-control URL"
-                >
-                  {actionLoading === "remote" ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <Globe size={14} />
-                  )}
-                  Open in Claude
-                </button>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleAction("stop", () => onStop(agent))}
+                disabled={actionLoading !== null}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg bg-[#c45c4a]/20 hover:bg-[#c45c4a]/40 text-[#c45c4a] transition-colors disabled:opacity-50"
+              >
+                {actionLoading === "stop" ? <Loader2 size={14} className="animate-spin" /> : <Square size={14} />}
+                Stop
+              </button>
+              {remote && (
                 <button
                   onClick={() => onCopySSH(agent, remote)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#e8e6dc] transition-colors"
-                  title="Copy SSH command to clipboard"
+                  className="py-2 px-3 text-xs rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#e8e6dc] transition-colors"
+                  title="Copy SSH command"
                 >
                   <Copy size={14} />
-                  Copy SSH
                 </button>
-              </>
-            )}
+              )}
+              <button
+                onClick={() => handleAction("delete", () => onDelete(agent))}
+                disabled={actionLoading !== null}
+                className="py-2 px-3 text-xs rounded-lg bg-[#2a2a28] hover:bg-[#c45c4a]/20 hover:text-[#c45c4a] text-[#b0aea5] transition-colors disabled:opacity-50"
+                title="Delete agent"
+              >
+                {actionLoading === "delete" ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              </button>
+            </div>
           </>
         )}
-
-        <button
-          onClick={() => handleAction("delete", () => onDelete(agent))}
-          disabled={actionLoading !== null}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#c45c4a]/20 hover:text-[#c45c4a] text-[#b0aea5] transition-colors disabled:opacity-50 ml-auto"
-        >
-          {actionLoading === "delete" ? (
-            <Loader2 size={14} className="animate-spin" />
-          ) : (
-            <Trash2 size={14} />
-          )}
-          Delete
-        </button>
       </div>
     </div>
   );

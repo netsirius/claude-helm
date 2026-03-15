@@ -320,6 +320,14 @@ pub async fn start_remote_control(
 ) -> Result<String, String> {
     let handle = get_handle(&state, &remote_id).await?;
 
+    // First check if remote-control is already active by capturing current output
+    let pre_output = sessions::capture_pane(&handle, &session_id, 30).await?;
+    let pre_clean = strip_ansi(&pre_output);
+
+    if let Some(url) = extract_claude_url(&pre_clean) {
+        return Ok(url);
+    }
+
     // Send /remote-control command to the Claude session via tmux
     let send_cmd = format!(
         "tmux send-keys -t '{}' '/remote-control' Enter",
@@ -327,34 +335,48 @@ pub async fn start_remote_control(
     );
     exec_command(&handle, &send_cmd).await?;
 
-    // Wait for Claude to generate the URL
-    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+    // Poll for the URL (up to 10 seconds)
+    for _ in 0..5 {
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
 
-    // Capture the pane output and look for the URL
-    let output = sessions::capture_pane(&handle, &session_id, 20).await?;
+        let output = sessions::capture_pane(&handle, &session_id, 30).await?;
+        let clean = strip_ansi(&output);
 
-    // Look for a URL pattern like https://claude.ai/code/... or https://claude.ai/remote/...
-    let url = output
-        .lines()
-        .filter_map(|line| {
-            let trimmed = line.trim();
-            if trimmed.contains("claude.ai/code") || trimmed.contains("claude.ai/remote") {
-                // Extract URL from the line
-                trimmed
-                    .split_whitespace()
-                    .find(|word| word.starts_with("http"))
-                    .map(|s| s.to_string())
-            } else {
-                None
+        if let Some(url) = extract_claude_url(&clean) {
+            // If a menu appeared (Disconnect/Continue), press Esc to dismiss it
+            if clean.contains("Disconnect this session") || clean.contains("Continue") {
+                let esc_cmd = format!("tmux send-keys -t '{}' Escape", session_id);
+                let _ = exec_command(&handle, &esc_cmd).await;
             }
-        })
-        .next()
-        .ok_or_else(|| {
-            "Could not find remote control URL. The session may not support remote-control."
-                .to_string()
-        })?;
+            return Ok(url);
+        }
+    }
 
-    Ok(url)
+    Err("Could not find remote control URL after 10 seconds. Make sure the session is at Claude's idle prompt (❯).".to_string())
+}
+
+/// Strip ANSI escape codes from a string.
+fn strip_ansi(input: &str) -> String {
+    let re = regex_lite::Regex::new(r"\x1b\[[0-9;]*[a-zA-Z]").unwrap();
+    re.replace_all(input, "").to_string()
+}
+
+/// Extract a claude.ai URL from text.
+fn extract_claude_url(text: &str) -> Option<String> {
+    for line in text.lines() {
+        let trimmed = line.trim();
+        // Look for the URL directly
+        if let Some(start) = trimmed.find("https://claude.ai/") {
+            let url_part = &trimmed[start..];
+            // Take until whitespace, comma, period at end, or end of line
+            let end = url_part.find(|c: char| c.is_whitespace() || c == ',' || c == ')').unwrap_or(url_part.len());
+            let url = url_part[..end].trim_end_matches('.');
+            if url.contains("/code/") || url.contains("/remote/") || url.contains("/session") {
+                return Some(url.to_string());
+            }
+        }
+    }
+    None
 }
 
 /// Helper: look up connection details for a remote and obtain a pooled SSH handle.
