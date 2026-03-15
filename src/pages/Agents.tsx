@@ -1,16 +1,27 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Plus, RefreshCw, Bot } from "lucide-react";
 import { useAgentStore, type Agent } from "../stores/agentStore";
 import { useRemoteStore, type Remote } from "../stores/remoteStore";
 import { tauriInvoke } from "../lib/tauri";
 import AgentCard from "../components/agents/AgentCard";
+import type { AgentActivity } from "../components/agents/AgentCard";
 import CreateAgentDialog from "../components/agents/CreateAgentDialog";
 import FileBrowser from "../components/remote/FileBrowser";
+
+const ACTIVITY_POLL_INTERVAL = 5000;
 
 export default function Agents() {
   const { agents, loading, fetch: fetchAgents } = useAgentStore();
   const { remotes, fetch: fetchRemotes } = useRemoteStore();
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Activity state for running agents
+  const [activityMap, setActivityMap] = useState<Map<string, AgentActivity>>(
+    new Map(),
+  );
+  const activityIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
 
   // File browser state for agent start flow
   const [fileBrowserOpen, setFileBrowserOpen] = useState(false);
@@ -24,6 +35,70 @@ export default function Agents() {
   }, [fetchAgents, fetchRemotes]);
 
   const remoteMap = new Map(remotes.map((v) => [v.id, v]));
+
+  // Identify running agents
+  const runningAgents = agents.filter(
+    (a) => a.currentSessionId && a.currentRemoteId,
+  );
+
+  // Poll activity for running agents
+  const fetchActivities = useCallback(async () => {
+    const running = agents.filter(
+      (a) => a.currentSessionId && a.currentRemoteId,
+    );
+    if (running.length === 0) return;
+
+    const entries = await Promise.allSettled(
+      running.map(async (agent) => {
+        const activity = await tauriInvoke<AgentActivity>(
+          "get_agent_activity",
+          {
+            remoteId: agent.currentRemoteId!,
+            sessionId: agent.currentSessionId!,
+          },
+        );
+        return [agent.id, activity] as [string, AgentActivity];
+      }),
+    );
+
+    setActivityMap((prev) => {
+      const next = new Map(prev);
+      for (const result of entries) {
+        if (result.status === "fulfilled") {
+          const [id, activity] = result.value;
+          next.set(id, activity);
+        }
+      }
+      return next;
+    });
+  }, [agents]);
+
+  useEffect(() => {
+    // Clear any previous interval
+    if (activityIntervalRef.current) {
+      clearInterval(activityIntervalRef.current);
+      activityIntervalRef.current = null;
+    }
+
+    if (runningAgents.length > 0) {
+      // Fetch immediately, then poll
+      fetchActivities();
+      activityIntervalRef.current = setInterval(
+        fetchActivities,
+        ACTIVITY_POLL_INTERVAL,
+      );
+    } else {
+      // No running agents; clear stale activity data
+      setActivityMap(new Map());
+    }
+
+    return () => {
+      if (activityIntervalRef.current) {
+        clearInterval(activityIntervalRef.current);
+        activityIntervalRef.current = null;
+      }
+    };
+  }, [runningAgents.length, fetchActivities]);
 
   const startAgent = async (agent: Agent, workingDir: string) => {
     const remoteId = agent.assignedRemoteId;
@@ -77,13 +152,29 @@ export default function Agents() {
         remoteId: agent.currentRemoteId,
         sessionId: agent.currentSessionId,
       });
+      // Clear activity for this agent
+      setActivityMap((prev) => {
+        const next = new Map(prev);
+        next.delete(agent.id);
+        return next;
+      });
       await fetchAgents();
     } catch (e) {
       alert(`Failed to stop agent: ${e}`);
     }
   };
 
-  const handleOpen = (agent: Agent, remote: Remote) => {
+  const handleOpenTerminal = (agent: Agent, remote: Remote) => {
+    if (!agent.currentSessionId) return;
+    tauriInvoke("open_session_terminal", {
+      remoteId: remote.id,
+      sessionId: agent.currentSessionId,
+    }).catch((e) => {
+      alert(`Failed to open terminal: ${e}`);
+    });
+  };
+
+  const handleCopySSH = (agent: Agent, remote: Remote) => {
     if (!agent.currentSessionId) return;
     const cmd = `ssh ${remote.user}@${remote.host} -p ${remote.port} -t 'tmux attach -t ${agent.currentSessionId}'`;
     navigator.clipboard.writeText(cmd).then(() => {
@@ -162,10 +253,12 @@ export default function Agents() {
                 remoteMap.get(agent.currentRemoteId ?? "") ??
                 remoteMap.get(agent.assignedRemoteId ?? "")
               }
+              activity={activityMap.get(agent.id)}
               onStart={handleStart}
               onStartWithBrowse={handleStartWithBrowse}
               onStop={handleStop}
-              onOpen={handleOpen}
+              onOpenTerminal={handleOpenTerminal}
+              onCopySSH={handleCopySSH}
               onDelete={handleDelete}
             />
           ))}

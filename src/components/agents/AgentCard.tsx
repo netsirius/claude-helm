@@ -1,15 +1,35 @@
 import { useState } from "react";
-import { Play, Square, Copy, Trash2, Loader2, FolderOpen } from "lucide-react";
+import {
+  Play,
+  Square,
+  Copy,
+  Trash2,
+  Loader2,
+  FolderOpen,
+  Terminal,
+  Brain,
+  Wrench,
+  ChevronRight,
+  Activity,
+} from "lucide-react";
 import type { Agent } from "../../stores/agentStore";
 import type { Remote } from "../../stores/remoteStore";
+
+export interface AgentActivity {
+  status: string; // "waiting" | "thinking" | "working" | "busy"
+  detail: string;
+  lastOutput: string;
+}
 
 interface AgentCardProps {
   agent: Agent;
   remote: Remote | undefined;
+  activity?: AgentActivity;
   onStart: (agent: Agent) => Promise<void>;
   onStartWithBrowse?: (agent: Agent) => void;
   onStop: (agent: Agent) => Promise<void>;
-  onOpen: (agent: Agent, remote: Remote) => void;
+  onOpenTerminal: (agent: Agent, remote: Remote) => void;
+  onCopySSH: (agent: Agent, remote: Remote) => void;
   onDelete: (agent: Agent) => Promise<void>;
 }
 
@@ -41,13 +61,58 @@ function getAgentStatus(agent: Agent): string {
   return "running";
 }
 
+function ActivityIndicator({ activity }: { activity: AgentActivity }) {
+  const { status, detail, lastOutput } = activity;
+
+  let icon: React.ReactNode;
+  let colorClass: string;
+
+  switch (status) {
+    case "waiting":
+      icon = <ChevronRight size={12} />;
+      colorClass = "text-[#b0aea5]";
+      break;
+    case "thinking":
+      icon = <Brain size={12} className="animate-pulse" />;
+      colorClass = "text-[#6a9bcc]";
+      break;
+    case "working":
+      icon = <Wrench size={12} />;
+      colorClass = "text-[#d97757]";
+      break;
+    default:
+      icon = <Activity size={12} />;
+      colorClass = "text-[#d97757]";
+      break;
+  }
+
+  return (
+    <div className="space-y-1.5">
+      {/* Activity status line */}
+      <div className={`flex items-center gap-1.5 text-xs ${colorClass}`}>
+        {icon}
+        <span className="truncate">{detail}</span>
+      </div>
+
+      {/* Output preview */}
+      {lastOutput && (
+        <div className="bg-[#141413] rounded px-2 py-1 font-mono text-[10px] text-[#b0aea5] leading-relaxed overflow-hidden whitespace-pre-wrap break-all max-h-[36px]">
+          {lastOutput}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AgentCard({
   agent,
   remote,
+  activity,
   onStart,
   onStartWithBrowse,
   onStop,
-  onOpen,
+  onOpenTerminal,
+  onCopySSH,
   onDelete,
 }: AgentCardProps) {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -110,6 +175,9 @@ export default function AgentCard({
         )}
       </div>
 
+      {/* Activity indicator for running agents */}
+      {isRunning && activity && <ActivityIndicator activity={activity} />}
+
       {/* Actions */}
       <div className="flex items-center gap-2 mt-auto pt-2 border-t border-[#2a2a28]">
         {isIdle && (
@@ -155,13 +223,24 @@ export default function AgentCard({
             </button>
 
             {remote && (
-              <button
-                onClick={() => onOpen(agent, remote)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#e8e6dc] transition-colors"
-              >
-                <Copy size={14} />
-                Open
-              </button>
+              <>
+                <button
+                  onClick={() => onOpenTerminal(agent, remote)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#d97757] hover:bg-[#c46847] text-[#faf9f5] transition-colors"
+                  title="Open session in Terminal.app"
+                >
+                  <Terminal size={14} />
+                  Open Terminal
+                </button>
+                <button
+                  onClick={() => onCopySSH(agent, remote)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#2a2a28] hover:bg-[#3a3a37] text-[#e8e6dc] transition-colors"
+                  title="Copy SSH command to clipboard"
+                >
+                  <Copy size={14} />
+                  Copy SSH
+                </button>
+              </>
             )}
           </>
         )}
