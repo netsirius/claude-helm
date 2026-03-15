@@ -20,10 +20,10 @@ pub struct Agent {
     pub default_model: String,
     pub default_dir: String,
     pub claude_md: String,
-    pub assigned_server_id: Option<String>,
+    pub assigned_remote_id: Option<String>,
     pub tags: Vec<String>,
     pub current_session_id: Option<String>,
-    pub current_server_id: Option<String>,
+    pub current_remote_id: Option<String>,
     pub created_at: String,
 }
 
@@ -71,10 +71,10 @@ impl Agent {
             default_model: "claude-sonnet-4-20250514".to_string(),
             default_dir: String::new(),
             claude_md: String::new(),
-            assigned_server_id: None,
+            assigned_remote_id: None,
             tags: vec![],
             current_session_id: None,
-            current_server_id: None,
+            current_remote_id: None,
             created_at: Utc::now().to_rfc3339(),
         }
     }
@@ -99,7 +99,7 @@ mod tests {
         let found = config.get(&id).unwrap();
         assert_eq!(found.name, "coder-1");
         assert_eq!(found.role, "backend-dev");
-        assert!(found.assigned_server_id.is_none());
+        assert!(found.assigned_remote_id.is_none());
         assert!(found.current_session_id.is_none());
     }
 
@@ -123,11 +123,11 @@ mod tests {
         config.add(agent);
 
         let agent_mut = config.get_mut(&id).unwrap();
-        agent_mut.assigned_server_id = Some("server-123".to_string());
+        agent_mut.assigned_remote_id = Some("remote-123".to_string());
         agent_mut.current_session_id = Some("session-456".to_string());
 
         let found = config.get(&id).unwrap();
-        assert_eq!(found.assigned_server_id.as_deref(), Some("server-123"));
+        assert_eq!(found.assigned_remote_id.as_deref(), Some("remote-123"));
         assert_eq!(found.current_session_id.as_deref(), Some("session-456"));
     }
 
@@ -152,7 +152,7 @@ mod tests {
         assert!(json.contains("schemaVersion"));
         assert!(json.contains("defaultModel"));
         assert!(json.contains("claudeMd"));
-        assert!(json.contains("assignedServerId"));
+        assert!(json.contains("assignedRemoteId"));
         assert!(json.contains("currentSessionId"));
         assert!(json.contains("createdAt"));
     }

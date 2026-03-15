@@ -2,21 +2,21 @@ use chrono::Utc;
 use std::fs;
 use tauri::State;
 
-use crate::config::server::{Server, ServerStatus};
+use crate::config::remote::{Remote, RemoteStatus};
 use crate::ssh::commands::exec_command;
 use crate::ssh::probe::{run_probe, ProbeResult};
 use crate::state::AppState;
 
-/// Return the full list of configured servers.
+/// Return the full list of configured remotes.
 #[tauri::command]
-pub async fn list_servers(state: State<'_, AppState>) -> Result<Vec<Server>, String> {
-    let config = state.server_config.lock().await;
-    Ok(config.servers.clone())
+pub async fn list_remotes(state: State<'_, AppState>) -> Result<Vec<Remote>, String> {
+    let config = state.remote_config.lock().await;
+    Ok(config.remotes.clone())
 }
 
-/// Add a new server entry and persist to disk.
+/// Add a new remote entry and persist to disk.
 #[tauri::command]
-pub async fn add_server(
+pub async fn add_remote(
     state: State<'_, AppState>,
     name: String,
     host: String,
@@ -25,39 +25,39 @@ pub async fn add_server(
     port: Option<u16>,
     tags: Option<Vec<String>>,
     group: Option<String>,
-) -> Result<Server, String> {
-    let mut server = Server::new(name, host, user, ssh_key_path);
+) -> Result<Remote, String> {
+    let mut remote = Remote::new(name, host, user, ssh_key_path);
 
     if let Some(p) = port {
-        server.port = p;
+        remote.port = p;
     }
     if let Some(t) = tags {
-        server.tags = t;
+        remote.tags = t;
     }
     if let Some(g) = group {
-        server.group = g;
+        remote.group = g;
     }
 
-    let result = server.clone();
+    let result = remote.clone();
 
-    let mut config = state.server_config.lock().await;
-    config.add(server);
+    let mut config = state.remote_config.lock().await;
+    config.add(remote);
 
     // Persist
     let store = state.config.lock().await;
     store
-        .save("servers.json", &*config)
-        .map_err(|e| format!("Failed to save server config: {}", e))?;
+        .save("remotes.json", &*config)
+        .map_err(|e| format!("Failed to save remote config: {}", e))?;
 
     Ok(result)
 }
 
-/// Update an existing server entry, applying only the provided fields.
+/// Update an existing remote entry, applying only the provided fields.
 ///
 /// If connection-relevant fields (host, port, user, ssh_key_path) change,
 /// the old SSH connection is disconnected so a fresh one will be created.
 #[tauri::command]
-pub async fn update_server(
+pub async fn update_remote(
     state: State<'_, AppState>,
     id: String,
     name: Option<String>,
@@ -67,53 +67,53 @@ pub async fn update_server(
     ssh_key_path: Option<String>,
     tags: Option<Vec<String>>,
     group: Option<String>,
-) -> Result<Server, String> {
+) -> Result<Remote, String> {
     // Determine whether connection-relevant fields are changing
     let needs_reconnect;
     let updated;
 
     {
-        let mut config = state.server_config.lock().await;
-        let server = config
+        let mut config = state.remote_config.lock().await;
+        let remote = config
             .get_mut(&id)
-            .ok_or_else(|| format!("Server '{}' not found", id))?;
+            .ok_or_else(|| format!("Remote '{}' not found", id))?;
 
         // Check if any SSH-relevant field is being changed
-        needs_reconnect = host.as_ref().is_some_and(|v| *v != server.host)
-            || port.is_some_and(|v| v != server.port)
-            || user.as_ref().is_some_and(|v| *v != server.user)
-            || ssh_key_path.as_ref().is_some_and(|v| *v != server.ssh_key_path);
+        needs_reconnect = host.as_ref().is_some_and(|v| *v != remote.host)
+            || port.is_some_and(|v| v != remote.port)
+            || user.as_ref().is_some_and(|v| *v != remote.user)
+            || ssh_key_path.as_ref().is_some_and(|v| *v != remote.ssh_key_path);
 
         // Apply only provided fields
         if let Some(v) = name {
-            server.name = v;
+            remote.name = v;
         }
         if let Some(v) = host {
-            server.host = v;
+            remote.host = v;
         }
         if let Some(v) = user {
-            server.user = v;
+            remote.user = v;
         }
         if let Some(v) = port {
-            server.port = v;
+            remote.port = v;
         }
         if let Some(v) = ssh_key_path {
-            server.ssh_key_path = v;
+            remote.ssh_key_path = v;
         }
         if let Some(v) = tags {
-            server.tags = v;
+            remote.tags = v;
         }
         if let Some(v) = group {
-            server.group = v;
+            remote.group = v;
         }
 
-        updated = server.clone();
+        updated = remote.clone();
 
-        // Persist — acquire config store while still holding server_config
+        // Persist — acquire config store while still holding remote_config
         let store = state.config.lock().await;
         store
-            .save("servers.json", &*config)
-            .map_err(|e| format!("Failed to save server config: {}", e))?;
+            .save("remotes.json", &*config)
+            .map_err(|e| format!("Failed to save remote config: {}", e))?;
     }
 
     // Disconnect old SSH session if connection details changed
@@ -124,45 +124,45 @@ pub async fn update_server(
     Ok(updated)
 }
 
-/// Remove a server by ID and persist to disk.  Returns `true` if the entry existed.
+/// Remove a remote by ID and persist to disk.  Returns `true` if the entry existed.
 #[tauri::command]
-pub async fn remove_server(state: State<'_, AppState>, id: String) -> Result<bool, String> {
-    let mut config = state.server_config.lock().await;
+pub async fn remove_remote(state: State<'_, AppState>, id: String) -> Result<bool, String> {
+    let mut config = state.remote_config.lock().await;
     let removed = config.remove(&id);
 
     if removed {
-        // Disconnect any pooled SSH session for this server
+        // Disconnect any pooled SSH session for this remote
         let _ = state.ssh_pool.disconnect(&id).await;
 
         // Persist
         let store = state.config.lock().await;
         store
-            .save("servers.json", &*config)
-            .map_err(|e| format!("Failed to save server config: {}", e))?;
+            .save("remotes.json", &*config)
+            .map_err(|e| format!("Failed to save remote config: {}", e))?;
     }
 
     Ok(removed)
 }
 
-/// Test connectivity to a server by SSHing in and running `echo ok`.
+/// Test connectivity to a remote by SSHing in and running `echo ok`.
 ///
-/// Updates the server status to Online or Offline and persists the change.
+/// Updates the remote status to Online or Offline and persists the change.
 #[tauri::command]
-pub async fn test_server_connection(
+pub async fn test_remote_connection(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<bool, String> {
     // Read connection details while holding the lock briefly
     let (host, port, user, key_path) = {
-        let config = state.server_config.lock().await;
-        let server = config
+        let config = state.remote_config.lock().await;
+        let remote = config
             .get(&id)
-            .ok_or_else(|| format!("Server '{}' not found", id))?;
+            .ok_or_else(|| format!("Remote '{}' not found", id))?;
         (
-            server.host.clone(),
-            server.port,
-            server.user.clone(),
-            server.ssh_key_path.clone(),
+            remote.host.clone(),
+            remote.port,
+            remote.user.clone(),
+            remote.ssh_key_path.clone(),
         )
     };
 
@@ -181,42 +181,42 @@ pub async fn test_server_connection(
 
     // Update status
     {
-        let mut config = state.server_config.lock().await;
-        if let Some(server) = config.get_mut(&id) {
-            server.status = if online {
-                ServerStatus::Online
+        let mut config = state.remote_config.lock().await;
+        if let Some(remote) = config.get_mut(&id) {
+            remote.status = if online {
+                RemoteStatus::Online
             } else {
-                ServerStatus::Offline
+                RemoteStatus::Offline
             };
-            server.last_seen = Utc::now().to_rfc3339();
+            remote.last_seen = Utc::now().to_rfc3339();
         }
 
         let store = state.config.lock().await;
         store
-            .save("servers.json", &*config)
-            .map_err(|e| format!("Failed to save server config: {}", e))?;
+            .save("remotes.json", &*config)
+            .map_err(|e| format!("Failed to save remote config: {}", e))?;
     }
 
     Ok(online)
 }
 
-/// Run a capability probe on the remote server and save the result to `probes/<id>.json`.
+/// Run a capability probe on the remote machine and save the result to `probes/<id>.json`.
 #[tauri::command]
-pub async fn probe_server(
+pub async fn probe_remote(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<ProbeResult, String> {
     // Read connection details
     let (host, port, user, key_path) = {
-        let config = state.server_config.lock().await;
-        let server = config
+        let config = state.remote_config.lock().await;
+        let remote = config
             .get(&id)
-            .ok_or_else(|| format!("Server '{}' not found", id))?;
+            .ok_or_else(|| format!("Remote '{}' not found", id))?;
         (
-            server.host.clone(),
-            server.port,
-            server.user.clone(),
-            server.ssh_key_path.clone(),
+            remote.host.clone(),
+            remote.port,
+            remote.user.clone(),
+            remote.ssh_key_path.clone(),
         )
     };
 
@@ -238,10 +238,10 @@ pub async fn probe_server(
             .map_err(|e| format!("Failed to serialise probe result: {}", e))?;
         let probe_path = probes_dir.join(format!("{}.json", id));
 
-        // Guard against path traversal via crafted server ID
+        // Guard against path traversal via crafted remote ID
         if !probe_path.starts_with(&probes_dir) {
             return Err(format!(
-                "Invalid server ID '{}': results in path traversal",
+                "Invalid remote ID '{}': results in path traversal",
                 id
             ));
         }
@@ -250,18 +250,18 @@ pub async fn probe_server(
             .map_err(|e| format!("Failed to write probe file: {}", e))?;
     }
 
-    // Mark server as online since the probe succeeded
+    // Mark remote as online since the probe succeeded
     {
-        let mut config = state.server_config.lock().await;
-        if let Some(server) = config.get_mut(&id) {
-            server.status = ServerStatus::Online;
-            server.last_seen = Utc::now().to_rfc3339();
+        let mut config = state.remote_config.lock().await;
+        if let Some(remote) = config.get_mut(&id) {
+            remote.status = RemoteStatus::Online;
+            remote.last_seen = Utc::now().to_rfc3339();
         }
 
         let store = state.config.lock().await;
         store
-            .save("servers.json", &*config)
-            .map_err(|e| format!("Failed to save server config: {}", e))?;
+            .save("remotes.json", &*config)
+            .map_err(|e| format!("Failed to save remote config: {}", e))?;
     }
 
     Ok(probe)

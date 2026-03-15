@@ -4,14 +4,14 @@ use chrono::Utc;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ServerConfig {
+pub struct RemoteConfig {
     pub schema_version: u32,
-    pub servers: Vec<Server>,
+    pub remotes: Vec<Remote>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Server {
+pub struct Remote {
     pub id: String,
     pub name: String,
     pub host: String,
@@ -20,52 +20,52 @@ pub struct Server {
     pub ssh_key_path: String,
     pub tags: Vec<String>,
     pub group: String,
-    pub status: ServerStatus,
+    pub status: RemoteStatus,
     pub last_seen: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
-pub enum ServerStatus {
+pub enum RemoteStatus {
     Online,
     Offline,
     Unknown,
 }
 
-impl ServerConfig {
+impl RemoteConfig {
     pub fn new() -> Self {
         Self {
             schema_version: 1,
-            servers: vec![],
+            remotes: vec![],
         }
     }
 
-    pub fn add(&mut self, server: Server) {
-        self.servers.push(server);
+    pub fn add(&mut self, remote: Remote) {
+        self.remotes.push(remote);
     }
 
     pub fn remove(&mut self, id: &str) -> bool {
-        let len = self.servers.len();
-        self.servers.retain(|v| v.id != id);
-        self.servers.len() < len
+        let len = self.remotes.len();
+        self.remotes.retain(|v| v.id != id);
+        self.remotes.len() < len
     }
 
-    pub fn get(&self, id: &str) -> Option<&Server> {
-        self.servers.iter().find(|v| v.id == id)
+    pub fn get(&self, id: &str) -> Option<&Remote> {
+        self.remotes.iter().find(|v| v.id == id)
     }
 
-    pub fn get_mut(&mut self, id: &str) -> Option<&mut Server> {
-        self.servers.iter_mut().find(|v| v.id == id)
+    pub fn get_mut(&mut self, id: &str) -> Option<&mut Remote> {
+        self.remotes.iter_mut().find(|v| v.id == id)
     }
 }
 
-impl Default for ServerConfig {
+impl Default for RemoteConfig {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Server {
+impl Remote {
     pub fn new(name: String, host: String, user: String, ssh_key_path: String) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
@@ -76,7 +76,7 @@ impl Server {
             ssh_key_path,
             tags: vec![],
             group: String::new(),
-            status: ServerStatus::Unknown,
+            status: RemoteStatus::Unknown,
             last_seen: Utc::now().to_rfc3339(),
         }
     }
@@ -87,65 +87,65 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_add_and_get_server() {
-        let mut config = ServerConfig::new();
+    fn test_add_and_get_remote() {
+        let mut config = RemoteConfig::new();
         assert_eq!(config.schema_version, 1);
-        assert!(config.servers.is_empty());
+        assert!(config.remotes.is_empty());
 
-        let server = Server::new(
-            "test-server".to_string(),
+        let remote = Remote::new(
+            "test-remote".to_string(),
             "192.168.1.1".to_string(),
             "root".to_string(),
             "/home/user/.ssh/id_rsa".to_string(),
         );
-        let id = server.id.clone();
-        config.add(server);
+        let id = remote.id.clone();
+        config.add(remote);
 
-        assert_eq!(config.servers.len(), 1);
+        assert_eq!(config.remotes.len(), 1);
 
         let found = config.get(&id).unwrap();
-        assert_eq!(found.name, "test-server");
+        assert_eq!(found.name, "test-remote");
         assert_eq!(found.host, "192.168.1.1");
         assert_eq!(found.port, 22);
         assert_eq!(found.user, "root");
-        assert_eq!(found.status, ServerStatus::Unknown);
+        assert_eq!(found.status, RemoteStatus::Unknown);
     }
 
     #[test]
-    fn test_remove_server() {
-        let mut config = ServerConfig::new();
-        let server = Server::new(
+    fn test_remove_remote() {
+        let mut config = RemoteConfig::new();
+        let remote = Remote::new(
             "to-remove".to_string(),
             "10.0.0.1".to_string(),
             "admin".to_string(),
             "/home/admin/.ssh/id_rsa".to_string(),
         );
-        let id = server.id.clone();
-        config.add(server);
+        let id = remote.id.clone();
+        config.add(remote);
 
         assert!(config.remove(&id));
-        assert!(config.servers.is_empty());
+        assert!(config.remotes.is_empty());
         assert!(!config.remove(&id)); // already removed
     }
 
     #[test]
     fn test_serialization() {
-        let mut config = ServerConfig::new();
-        let server = Server::new(
+        let mut config = RemoteConfig::new();
+        let remote = Remote::new(
             "serial-test".to_string(),
             "example.com".to_string(),
             "deploy".to_string(),
             "/keys/deploy".to_string(),
         );
-        config.add(server);
+        config.add(remote);
 
         let json = serde_json::to_string_pretty(&config).unwrap();
-        let deserialized: ServerConfig = serde_json::from_str(&json).unwrap();
+        let deserialized: RemoteConfig = serde_json::from_str(&json).unwrap();
 
         assert_eq!(deserialized.schema_version, 1);
-        assert_eq!(deserialized.servers.len(), 1);
-        assert_eq!(deserialized.servers[0].name, "serial-test");
-        assert_eq!(deserialized.servers[0].status, ServerStatus::Unknown);
+        assert_eq!(deserialized.remotes.len(), 1);
+        assert_eq!(deserialized.remotes[0].name, "serial-test");
+        assert_eq!(deserialized.remotes[0].status, RemoteStatus::Unknown);
 
         // Verify camelCase serialization
         assert!(json.contains("schemaVersion"));

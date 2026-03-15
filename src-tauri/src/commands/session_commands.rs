@@ -5,24 +5,24 @@ use crate::ssh::probe::ProbeResult;
 use crate::ssh::sessions::{self, RemoteSession};
 use crate::state::AppState;
 
-/// List all Claude Manager tmux sessions on a remote server.
+/// List all Claude Manager tmux sessions on a remote machine.
 #[tauri::command]
 pub async fn list_sessions(
     state: State<'_, AppState>,
-    server_id: String,
+    remote_id: String,
 ) -> Result<Vec<RemoteSession>, String> {
-    let handle = get_handle(&state, &server_id).await?;
+    let handle = get_handle(&state, &remote_id).await?;
     sessions::list_sessions(&handle).await
 }
 
-/// Create a new Claude tmux session on a remote server.
+/// Create a new Claude tmux session on a remote machine.
 ///
 /// Uses the cached probe result to find the `claude` binary path.
-/// Updates the agent's `current_session_id` and `current_server_id` in config.
+/// Updates the agent's `current_session_id` and `current_remote_id` in config.
 #[tauri::command]
 pub async fn create_session(
     state: State<'_, AppState>,
-    server_id: String,
+    remote_id: String,
     agent_id: String,
     working_dir: String,
     model: Option<String>,
@@ -31,23 +31,23 @@ pub async fn create_session(
     let claude_path = {
         let store = state.config.lock().await;
         let probes_dir = store.base_dir().join("probes");
-        let probe_path = probes_dir.join(format!("{}.json", server_id));
+        let probe_path = probes_dir.join(format!("{}.json", remote_id));
 
-        // Guard against path traversal via crafted server ID
+        // Guard against path traversal via crafted remote ID
         if !probe_path.starts_with(&probes_dir) {
             return Err(format!(
-                "Invalid server ID '{}': results in path traversal",
-                server_id
+                "Invalid remote ID '{}': results in path traversal",
+                remote_id
             ));
         }
 
         let probe_json = fs::read_to_string(&probe_path)
-            .map_err(|_| format!("No probe cache for server '{}'. Run probe first.", server_id))?;
+            .map_err(|_| format!("No probe cache for remote '{}'. Run probe first.", remote_id))?;
         let probe: ProbeResult = serde_json::from_str(&probe_json)
             .map_err(|e| format!("Failed to parse probe cache: {}", e))?;
         probe
             .claude_path
-            .ok_or_else(|| format!("Claude CLI not found on server '{}'", server_id))?
+            .ok_or_else(|| format!("Claude CLI not found on remote '{}'", remote_id))?
     };
 
     // Validate and build the claude command with optional model flag
@@ -70,7 +70,7 @@ pub async fn create_session(
     // Use agent_id as the session name suffix
     let session_name = format!("cm-{}", agent_id.chars().take(8).collect::<String>());
 
-    let handle = get_handle(&state, &server_id).await?;
+    let handle = get_handle(&state, &remote_id).await?;
     let created_name = sessions::create_session(&handle, &session_name, &working_dir, &claude_cmd).await?;
 
     // Update agent mapping
@@ -78,7 +78,7 @@ pub async fn create_session(
         let mut agents_config = state.agents_config.lock().await;
         if let Some(agent) = agents_config.get_mut(&agent_id) {
             agent.current_session_id = Some(created_name.clone());
-            agent.current_server_id = Some(server_id.clone());
+            agent.current_remote_id = Some(remote_id.clone());
         }
 
         let store = state.config.lock().await;
@@ -90,16 +90,16 @@ pub async fn create_session(
     Ok(created_name)
 }
 
-/// Stop (kill) a Claude tmux session on a remote server.
+/// Stop (kill) a Claude tmux session on a remote machine.
 ///
-/// Clears the agent's `current_session_id` and `current_server_id` if they match.
+/// Clears the agent's `current_session_id` and `current_remote_id` if they match.
 #[tauri::command]
 pub async fn stop_session(
     state: State<'_, AppState>,
-    server_id: String,
+    remote_id: String,
     session_id: String,
 ) -> Result<(), String> {
-    let handle = get_handle(&state, &server_id).await?;
+    let handle = get_handle(&state, &remote_id).await?;
     sessions::stop_session(&handle, &session_id).await?;
 
     // Clear session mapping from any agent that references this session
@@ -108,7 +108,7 @@ pub async fn stop_session(
         for agent in &mut agents_config.agents {
             if agent.current_session_id.as_deref() == Some(&session_id) {
                 agent.current_session_id = None;
-                agent.current_server_id = None;
+                agent.current_remote_id = None;
             }
         }
 
@@ -125,33 +125,33 @@ pub async fn stop_session(
 #[tauri::command]
 pub async fn capture_session_output(
     state: State<'_, AppState>,
-    server_id: String,
+    remote_id: String,
     session_id: String,
 ) -> Result<String, String> {
-    let handle = get_handle(&state, &server_id).await?;
+    let handle = get_handle(&state, &remote_id).await?;
     sessions::capture_pane(&handle, &session_id, 200).await
 }
 
-/// Helper: look up server connection details and obtain a pooled SSH handle.
+/// Helper: look up connection details for a remote and obtain a pooled SSH handle.
 async fn get_handle(
     state: &State<'_, AppState>,
-    server_id: &str,
+    remote_id: &str,
 ) -> Result<crate::ssh::connection::SharedHandle, String> {
     let (host, port, user, key_path) = {
-        let config = state.server_config.lock().await;
-        let server = config
-            .get(server_id)
-            .ok_or_else(|| format!("Server '{}' not found", server_id))?;
+        let config = state.remote_config.lock().await;
+        let remote = config
+            .get(remote_id)
+            .ok_or_else(|| format!("Remote '{}' not found", remote_id))?;
         (
-            server.host.clone(),
-            server.port,
-            server.user.clone(),
-            server.ssh_key_path.clone(),
+            remote.host.clone(),
+            remote.port,
+            remote.user.clone(),
+            remote.ssh_key_path.clone(),
         )
     };
 
     state
         .ssh_pool
-        .get_or_connect(server_id, &host, port, &user, &key_path)
+        .get_or_connect(remote_id, &host, port, &user, &key_path)
         .await
 }

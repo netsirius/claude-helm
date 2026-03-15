@@ -33,12 +33,12 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            commands::server_commands::list_servers,
-            commands::server_commands::add_server,
-            commands::server_commands::update_server,
-            commands::server_commands::remove_server,
-            commands::server_commands::test_server_connection,
-            commands::server_commands::probe_server,
+            commands::remote_commands::list_remotes,
+            commands::remote_commands::add_remote,
+            commands::remote_commands::update_remote,
+            commands::remote_commands::remove_remote,
+            commands::remote_commands::test_remote_connection,
+            commands::remote_commands::probe_remote,
             commands::agent_commands::list_agents,
             commands::agent_commands::add_agent,
             commands::agent_commands::remove_agent,
@@ -46,7 +46,7 @@ pub fn run() {
             commands::session_commands::create_session,
             commands::session_commands::stop_session,
             commands::session_commands::capture_session_output,
-            commands::extension_commands::list_server_extensions,
+            commands::extension_commands::list_remote_extensions,
             commands::pipeline_commands::list_pipelines,
             commands::pipeline_commands::create_pipeline,
             commands::pipeline_commands::add_pipeline_step,

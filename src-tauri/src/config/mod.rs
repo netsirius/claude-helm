@@ -1,4 +1,4 @@
-pub mod server;
+pub mod remote;
 pub mod agents;
 pub mod pipelines;
 
@@ -45,7 +45,7 @@ impl ConfigStore {
     /// Load a config file with backward-compatible migration.
     ///
     /// If `filename` does not exist but `fallback` does, loads from the fallback
-    /// path instead.  This supports renaming config files (e.g. vps.json -> servers.json)
+    /// path instead.  This supports renaming config files (e.g. vps.json -> remotes.json)
     /// without losing existing data.
     pub fn load_with_fallback<T: DeserializeOwned + Default>(
         &self,
@@ -95,7 +95,7 @@ impl Default for ConfigStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::server::{Server, ServerConfig};
+    use super::remote::{Remote, RemoteConfig};
 
     #[test]
     fn test_config_store_init() {
@@ -106,19 +106,19 @@ mod tests {
     #[test]
     fn test_load_missing_file_returns_default() {
         let store = ConfigStore::new().unwrap();
-        let config: ServerConfig = store.load("nonexistent_test_file.json");
+        let config: RemoteConfig = store.load("nonexistent_test_file.json");
         assert_eq!(config.schema_version, 1);
-        assert!(config.servers.is_empty());
+        assert!(config.remotes.is_empty());
     }
 
     #[test]
     fn test_save_and_load_roundtrip() {
         let store = ConfigStore::new().unwrap();
-        let test_file = "test_roundtrip_servers.json";
+        let test_file = "test_roundtrip_remotes.json";
 
-        let mut config = ServerConfig::new();
-        config.add(Server::new(
-            "roundtrip-server".to_string(),
+        let mut config = RemoteConfig::new();
+        config.add(Remote::new(
+            "roundtrip-remote".to_string(),
             "10.0.0.1".to_string(),
             "admin".to_string(),
             "/keys/admin".to_string(),
@@ -126,9 +126,9 @@ mod tests {
 
         store.save(test_file, &config).unwrap();
 
-        let loaded: ServerConfig = store.load(test_file);
-        assert_eq!(loaded.servers.len(), 1);
-        assert_eq!(loaded.servers[0].name, "roundtrip-server");
+        let loaded: RemoteConfig = store.load(test_file);
+        assert_eq!(loaded.remotes.len(), 1);
+        assert_eq!(loaded.remotes[0].name, "roundtrip-remote");
 
         // Cleanup
         let _ = fs::remove_file(store.base_dir().join(test_file));
@@ -142,7 +142,7 @@ mod tests {
         let store = ConfigStore::new().unwrap();
         let test_file = "test_permissions.json";
 
-        let config = ServerConfig::new();
+        let config = RemoteConfig::new();
         store.save(test_file, &config).unwrap();
 
         let path = store.base_dir().join(test_file);
